@@ -16,8 +16,8 @@
 
 /****** Adjustable variables **************/
 #define EN_SHUTDOWN 1 // set to 0 to disable shutdown, for generating noshutdown EXE on PC
-#define AVGOVER 10 
-#define SHUTDOWNCOUNT 6
+#define AVGOVER 2 
+#define SHUTDOWNCOUNT 20
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
 
 #define PLUG1ON     60
@@ -25,24 +25,24 @@
 #define PLUGSON     650
 #define PCLOAD      250
 
-// const char defaultlogfilename[] = "/cygdrive/h/solar.log";
-const char defaultlogfilename[] = "/var/ramdisk/solar.log";
-const char defaultgraphname[] = "/var/ramdisk/solar_graph.log";
+const char defaultlogfilename[] = "/cygdrive/h/__Logs__/solar.log";
+//const char defaultlogfilename[] = "/var/ramdisk/solar.log";
+//const char defaultgraphname[] = "/var/ramdisk/solar_graph.log";
 char logfilename[100];
 /*******************************************/
 
 
 // vvvvvv -- Pimote control code -- vvvvvv 
 //    Insert at the top of the code 
-#include <wiringPi.h>
+/*#include <wiringPi.h>
   #define	D0	    0
   #define	D1	    3
   #define	D2	    4
   #define	D3	    2
   #define	ModSel  5
-  #define	CE      6 
+  #define	CE      6 */
 void pimote_setup (void) {
-  wiringPiSetup () ;
+/*  wiringPiSetup () ;
   // Set GPIO modes 
   pinMode (D0, OUTPUT);
   pinMode (D1, OUTPUT);
@@ -58,11 +58,11 @@ void pimote_setup (void) {
   digitalWrite (D3, LOW);
   digitalWrite (ModSel, LOW);
   digitalWrite (CE, LOW);
-  delay (100);    // in ms  
+  delay (100);    // in ms  */
 }
 int pimote_onoff (int socket, int on1off) {
   int r = 0;
-  if (on1off == 1) {
+/*  if (on1off == 1) {
     printf ("Pimote turning ON ");
     digitalWrite (D3, HIGH);  // Turn on 
   } else {
@@ -110,7 +110,7 @@ int pimote_onoff (int socket, int on1off) {
   digitalWrite (CE, HIGH);
   delay (250) ; 
   digitalWrite (CE, LOW);
-  delay (650) ;  
+  delay (650) ;  */
   return r;
 }
 // ^^^^^^ -- Pimote control code -- ^^^^^^  
@@ -436,41 +436,41 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       if (countExporting < AVGOVER -1) countExporting++; else countExporting = 0;
       avgExporting = sumExporting / AVGOVER;
       // printf("--- avg counters:  %d | %d | %d ---\n", countUsage, countExporting, countGenerating);
-      // vvvvv  Additional logic here for WOL  vvvvvvvvvvvv
-      if ((valUsage - valGenerating) >= 500) {  // added to ensure PC won't wake up due to spike usage 
-          statusBoinc = 1;
-      }
-      
-      if (countExporting == 0) {
-          if (avgExporting > PCLOAD && valExporting > PCLOAD) {
-              if (statusBoinc != 1) {
-                  statusBoinc = 8;
-                  system(". /home/pi/auto/wol_main.sh");
-              } else statusBoinc = 0;
-          } else statusBoinc = 0;
-      }
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      // ^^^^^  Additional logic here for WOL  vvvvvvvvvvvv
+        // vvvvv  Additional logic here for BIONIC  vvvvvvvvvvvv
+        if (valExporting <= 10) {  // added to ensure PC won't wake up due to spike usage 
+            statusBoinc = 1;
+        }
+        if (countExporting == 0) {
+            if (avgExporting < 10 && statusSocket == 0) {   // Turn BOINC off 
+                countShutdown = countShutdown- 1;
+                statusBoinc = 11;
+                system("cmd /C \"c:\\Program Files\\BOINC\\boinccmd.exe\" --set_run_mode never");
+            } else if (avgExporting > PCLOAD && valExporting > PCLOAD) {    // Turn BOINC on 
+                if (statusBoinc != 1) {
+                    countShutdown = SHUTDOWNCOUNT;
+                    statusBoinc = 88;
+                    if (EN_SHUTDOWN == 1)  system("cmd /C shutdown -a 2> null"); 
+                    system("cmd /C \"c:\\Program Files\\BOINC\\boinccmd.exe\" --set_run_mode auto");
+                } else statusBoinc = 0;
+            } else statusBoinc = 0;
+            if (countShutdown <= 0) {   // Too many instances low power, turn off computer 
+                printf ("shutdown here\n");
+                if (EN_SHUTDOWN == 1)  system("cmd /C shutdown -s -t 300"); 
+            }
+        }
+        if ((valExporting <= 1) && ((valUsage - valGenerating) >= 500) && (countShutdown > 2)) { // Big appliance using elec
+            if (power_on_buf = 0) {  // Prevent on turning on computer. 
+                printf("Big appliance detected, going to hibernate. \n");
+                if (countShutdown > 2) countShutdown = 2;
+                system("cmd /C \"c:\\Program Files\\BOINC\\boinccmd.exe\" --set_run_mode never");
+                printf ("hibernate here\n");
+                if (EN_SHUTDOWN == 1)  system("cmd /C shutdown -h"); 
+            }
+        }
+        // ^^^^^  Additional logic here for BIONIC  vvvvvvvvvvvv
       
       // Log file for graph 
-      pGraphFile = fopen(defaultgraphname, "a"); // append to the end of the file 
+      /*pGraphFile = fopen(defaultgraphname, "a"); // append to the end of the file 
       if (pGraphFile == NULL){
           printf("---ERROR--------graph log file open failed--------ERROR---\n");
           fflush(stdout); // print everything in the stdout buffer
@@ -479,7 +479,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
           fprintf(pGraphFile, "%s", msgbuf);
           printf("Writen to graph log file:- %s", msgbuf);
           fclose(pGraphFile);
-      }
+      }*/
       
       // Log current status 
       pLogFile = fopen(logfilename, "a"); // append the information into a file 
@@ -488,7 +488,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
           fflush(stdout); // print everything in the stdout buffer
           // exit(1);
       } else {
-          sprintf(msgbuf, "%s | %d|%2d | %4lu | %4lu | %4lu \n", timestr, statusSocket, statusBoinc, valUsage, valGenerating, valExporting);
+          sprintf(msgbuf, "%s | %d|%2d|%2d | %4lu | %4lu | %4lu \n", timestr, statusSocket, statusBoinc, countShutdown, valUsage, valGenerating, valExporting);
           fprintf(pLogFile, "%s", msgbuf);
           printf("Writen to log file:- %s", msgbuf);
           fclose(pLogFile);
