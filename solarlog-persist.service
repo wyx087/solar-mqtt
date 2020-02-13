@@ -1,0 +1,12 @@
+[Unit]
+Description=Solar Owl multicast data logger
+After=hassio-supervisor.service
+Requires=hassio-supervisor.service
+
+[Service]
+Type=simple
+ExecStart=/home/pi/auto/solarlog-persist run
+ExecStop=/home/pi/auto/solarlog-persist sync
+
+[Install]
+WantedBy=multi-user.target
