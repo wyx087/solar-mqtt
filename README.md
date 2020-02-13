@@ -15,6 +15,7 @@ This is what's contained in this repository:
 Requirements for solar-mqtt.c: 
 
 - MQTT source, publishing solar generation, export and usage 
+  - Broker needs to allow_anonymous, edit /etc/mosquitto/mosquitto.conf
 - Raspberry Pi (I used on version 3B and 4B, should work with all) 
 - Setup a RAMdisk at /var/ramdisk (https://www.domoticz.com/wiki/Setting_up_a_RAM_drive_on_Raspberry_Pi) 
 - Pimote and plugs from Energenie (see pc.c on how to comment out this part if you only want data logging) 
