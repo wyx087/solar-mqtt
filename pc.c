@@ -311,7 +311,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
     static signed long aryUsage[AVGOVER] ={0}, aryGenerating[AVGOVER] ={0}, aryExporting[AVGOVER] ={0};
     static int countUsage =0, countGenerating =0, countExporting =0;
     static int statusSocket =0, countON =0;
-    static int statusBoinc = 0, countShutdown = SHUTDOWNCOUNT, power_on_buf = 10;
+    static int statusBoinc = 0, countShutdown = SHUTDOWNCOUNT, power_on_buf = 30;
     
     FILE * pLogFile = NULL;
     FILE * pGraphFile = NULL;
@@ -445,12 +445,14 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                 countShutdown = countShutdown- 1;
                 statusBoinc = 11;
                 system("cmd /C \"c:\\Program Files\\BOINC\\boinccmd.exe\" --set_run_mode never");
+                system("cmd /C \"taskkill /IM NiceHashMiner.exe\" ");
             } else if (avgExporting > PCLOAD && valExporting > PCLOAD) {    // Turn BOINC on 
                 if (statusBoinc != 1) {
                     countShutdown = SHUTDOWNCOUNT;
                     statusBoinc = 88;
                     if (EN_SHUTDOWN == 1)  system("cmd /C shutdown -a 2> null"); 
                     system("cmd /C \"c:\\Program Files\\BOINC\\boinccmd.exe\" --set_run_mode auto");
+                    system("cmd /C \"G:\\Program Files\\NiceHash\\NiceHashMiner.exe\" ");
                 } else statusBoinc = 0;
             } else statusBoinc = 0;
             if (countShutdown <= 0) {   // Too many instances low power, turn off computer 
@@ -463,9 +465,10 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                 printf("Big appliance detected, going to hibernate. \n");
                 if (countShutdown > 2) countShutdown = 2;
                 system("cmd /C \"c:\\Program Files\\BOINC\\boinccmd.exe\" --set_run_mode never");
+                system("cmd /C \"taskkill /IM NiceHashMiner.exe\" ");
                 printf ("hibernate here\n");
                 if (EN_SHUTDOWN == 1)  system("cmd /C shutdown -h"); 
-            }
+            } else power_on_buf--;
         }
         // ^^^^^  Additional logic here for BIONIC  vvvvvvvvvvvv
       
