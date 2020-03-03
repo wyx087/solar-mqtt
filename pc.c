@@ -452,7 +452,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                     statusBoinc = 88;
                     if (EN_SHUTDOWN == 1)  system("cmd /C shutdown -a 2> null"); 
                     system("cmd /C \"c:\\Program Files\\BOINC\\boinccmd.exe\" --set_run_mode auto");
-                    system("cmd /C \"G:\\Program Files\\NiceHash\\NiceHashMiner.exe\" ");
+                    system("run -p \"G:\\Program Files\\NiceHash\" \"G:\\Program Files\\NiceHash\\NiceHashMiner.exe\" ");
                 } else statusBoinc = 0;
             } else statusBoinc = 0;
             if (countShutdown <= 0) {   // Too many instances low power, turn off computer 
