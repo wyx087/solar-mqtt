@@ -17,7 +17,7 @@
 /****** Adjustable variables **************/
 #define EN_SHUTDOWN 1 // set to 0 to disable shutdown, for generating noshutdown EXE on PC
 #define AVGOVER 2 
-#define SHUTDOWNCOUNT 20
+#define SHUTDOWNCOUNT 10
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
 
 #define PLUG1ON     60
@@ -25,7 +25,7 @@
 #define PLUGSON     650
 #define PCLOAD      250
 
-const char defaultlogfilename[] = "/cygdrive/h/__Logs__/solar.log";
+const char defaultlogfilename[] = "/mnt/h/Temp/solar.log";
 //const char defaultlogfilename[] = "/var/ramdisk/solar.log";
 //const char defaultgraphname[] = "/var/ramdisk/solar_graph.log";
 char logfilename[100];
@@ -35,12 +35,12 @@ char logfilename[100];
 // vvvvvv -- Pimote control code -- vvvvvv 
 //    Insert at the top of the code 
 /*#include <wiringPi.h>
-  #define	D0	    0
-  #define	D1	    3
-  #define	D2	    4
-  #define	D3	    2
-  #define	ModSel  5
-  #define	CE      6 */
+  #define    D0        0
+  #define    D1        3
+  #define    D2        4
+  #define    D3        2
+  #define    ModSel  5
+  #define    CE      6 */
 void pimote_setup (void) {
 /*  wiringPiSetup () ;
   // Set GPIO modes 
@@ -177,7 +177,9 @@ int main(int argc, const char *argv[])
     } else {
       strncpy(logfilename, defaultlogfilename, sizeof(defaultlogfilename));
     }
-    printf("Writing to log file:- %s\n\n", logfilename);
+    printf("\nWriting to log file:- %s \n", logfilename);
+    printf("Format:- time | statusSocket | statusMining | countShutdown | valUsage | valGenerating | valExporting");
+    printf("\n\n");
     // ^^^^^^ -- WYXadded -- ^^^^^^  
     
     
@@ -231,7 +233,7 @@ int main(int argc, const char *argv[])
     }
 
     /* start publishing the time */
-    printf("%s listening for '%s' messages.\n", argv[0], topic);
+    printf("%s listening for '%s' messages.\n\n", argv[0], topic);
     //printf("Press ENTER to inject an error.\n");
     //printf("Press CTRL-D to exit.\n\n");
     
@@ -305,13 +307,14 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
     char msgbuf[1000];
     char header [50];
     char payload [50];
-    static signed long valUsage =0, valGenerating =0, valExporting =0;
+    static signed long valUsage =0, valGenerating =0, valExporting =0, valImporting =0;
     static signed long avgUsage =0, avgGenerating =0, avgExporting =0;
     static signed long sumUsage =0, sumGenerating =0, sumExporting =0;
     static signed long aryUsage[AVGOVER] ={0}, aryGenerating[AVGOVER] ={0}, aryExporting[AVGOVER] ={0};
     static int countUsage =0, countGenerating =0, countExporting =0;
     static int statusSocket =0, countON =0;
-    static int statusBoinc = 0, countShutdown = SHUTDOWNCOUNT, power_on_buf = 30;
+    static int statusMining = 0, countShutdown = SHUTDOWNCOUNT, power_on_buf = 20, GPUpwr = 0;
+    char command[200];
     
     FILE * pLogFile = NULL;
     FILE * pGraphFile = NULL;
@@ -436,39 +439,53 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       if (countExporting < AVGOVER -1) countExporting++; else countExporting = 0;
       avgExporting = sumExporting / AVGOVER;
       // printf("--- avg counters:  %d | %d | %d ---\n", countUsage, countExporting, countGenerating);
-        // vvvvv  Additional logic here for BIONIC  vvvvvvvvvvvv
-        if (valExporting <= 10) {  // added to ensure PC won't wake up due to spike usage 
-            statusBoinc = 1;
-        }
-        if (countExporting == 0) {
-            if (avgExporting < 10 && statusSocket == 0) {   // Turn BOINC off 
-                countShutdown = countShutdown- 1;
-                statusBoinc = 11;
-                system("cmd /C \"c:\\Program Files\\BOINC\\boinccmd.exe\" --set_run_mode never");
-                system("cmd /C \"taskkill /IM NiceHashMiner.exe\" ");
-            } else if (avgExporting > PCLOAD && valExporting > PCLOAD) {    // Turn BOINC on 
-                if (statusBoinc != 1) {
-                    countShutdown = SHUTDOWNCOUNT;
-                    statusBoinc = 88;
-                    if (EN_SHUTDOWN == 1)  system("cmd /C shutdown -a 2> null"); 
-                    system("cmd /C \"c:\\Program Files\\BOINC\\boinccmd.exe\" --set_run_mode auto");
-                    system("run -p \"G:\\Program Files\\NiceHash\" \"G:\\Program Files\\NiceHash\\NiceHashMiner.exe\" ");
-                } else statusBoinc = 0;
-            } else statusBoinc = 0;
-            if (countShutdown <= 0) {   // Too many instances low power, turn off computer 
-                printf ("shutdown here\n");
-                if (EN_SHUTDOWN == 1)  system("cmd /C shutdown -s -t 300"); 
+        // vvvvv  Additional logic here for PC  vvvvvvvvvvvv
+        if (power_on_buf > 0) power_on_buf--; 
+        valImporting = valUsage - valGenerating;
+        
+        if (statusMining == 0) {  // Not mining 
+            if (valExporting > 120) {
+                // start mining 
+                statusMining = 1; 
+                countShutdown = SHUTDOWNCOUNT; 
+                system("/mnt/c/Windows/system32/shutdown.exe -a 2> null"); 
+                system("/mnt/c/Users/wyx/AppData/Local/Programs/NiceHash\\ Miner/NiceHashMiner.exe &");
+                GPUpwr = valExporting; 
+                if (GPUpwr < 220) { // set GPUpwr 
+                    //todo set GPU power 
+                    sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d", GPUpwr);
+                    system(command);
+                } else               // set GPU to 220 
+                    system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=220");
+            } else if (valImporting > 50) {
+                // plan to shutdown 
+                if ((countShutdown < 1) && (power_on_buf < 1)) {
+                    if (EN_SHUTDOWN == 1) system("/mnt/c/Windows/system32/shutdown.exe -s -t 300"); 
+                } else 
+                    countShutdown = countShutdown - 1;
             }
-        }
-        if ((valExporting <= 1) && ((valUsage - valGenerating) >= 500) && (countShutdown > 2)) { // Big appliance using elec
-            if (power_on_buf = 0) {  // Prevent on turning on computer. 
-                printf("Big appliance detected, going to hibernate. \n");
-                if (countShutdown > 2) countShutdown = 2;
-                system("cmd /C \"c:\\Program Files\\BOINC\\boinccmd.exe\" --set_run_mode never");
-                system("cmd /C \"taskkill /IM NiceHashMiner.exe\" ");
-                printf ("hibernate here\n");
-                if (EN_SHUTDOWN == 1)  system("cmd /C shutdown -h"); 
-            } else power_on_buf--;
+        } else {   // during mining 
+            if (valExporting > 10) {
+                GPUpwr = GPUpwr + valExporting - 2; 
+                if (GPUpwr < 220) { // set GPUpwr 
+                    //todo set GPU power 
+                    sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d", GPUpwr);
+                    system(command);
+                } else  {             // set GPU to 220 
+                    system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=220");
+                }
+            } else if (valImporting > 10) {
+                GPUpwr = GPUpwr - valImporting - 2; 
+                if (GPUpwr > 105) { // set GPUpwr 
+                    //todo set GPU power 
+                    sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d", GPUpwr);
+                    system(command);
+                } else {             // stop mining, set GPU to 260 
+                    statusMining = 0;
+                    system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
+                    system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=260");
+                }
+            }
         }
         // ^^^^^  Additional logic here for BIONIC  vvvvvvvvvvvv
       
@@ -480,7 +497,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       } else {
           sprintf(msgbuf, "%s,%lu,%lu,%lu\n", timestr, valUsage, valGenerating, valExporting);
           fprintf(pGraphFile, "%s", msgbuf);
-          printf("Writen to graph log file:- %s", msgbuf);
+          printf("Written to graph log file:- %s", msgbuf);
           fclose(pGraphFile);
       }*/
       
@@ -491,9 +508,9 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
           fflush(stdout); // print everything in the stdout buffer
           // exit(1);
       } else {
-          sprintf(msgbuf, "%s | %d|%2d|%2d | %4lu | %4lu | %4lu \n", timestr, statusSocket, statusBoinc, countShutdown, valUsage, valGenerating, valExporting);
+          sprintf(msgbuf, "%s | %d|%2d|%2d | %4lu | %4lu | %4lu \n", timestr, statusSocket, statusMining, countShutdown, valUsage, valGenerating, valExporting);
           fprintf(pLogFile, "%s", msgbuf);
-          printf("Writen to log file:- %s", msgbuf);
+          printf("Written to log file:- %s", msgbuf);
           fclose(pLogFile);
       }
       

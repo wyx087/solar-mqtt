@@ -25,7 +25,7 @@
 #define PLUGSON     650
 #define PCLOAD      250
 
-// const char defaultlogfilename[] = "/cygdrive/h/solar.log";
+// const char defaultlogfilename[] = "/mnt/h/Temp/solar.log";
 const char defaultlogfilename[] = "/var/ramdisk/solar.log";
 const char defaultgraphname[] = "/var/ramdisk/solar_graph.log";
 char logfilename[100];
@@ -177,7 +177,9 @@ int main(int argc, const char *argv[])
     } else {
       strncpy(logfilename, defaultlogfilename, sizeof(defaultlogfilename));
     }
-    printf("Writing to log file:- %s\n\n", logfilename);
+    printf("\nWriting to log file:- %s \n", logfilename);
+    printf("Format:- time | statusSocket | statusMining | countShutdown | valUsage | valGenerating | valExporting");
+    printf("\n\n");
     // ^^^^^^ -- WYXadded -- ^^^^^^  
     
     
@@ -231,7 +233,7 @@ int main(int argc, const char *argv[])
     }
 
     /* start publishing the time */
-    printf("%s listening for '%s' messages.\n", argv[0], topic);
+    printf("%s listening for '%s' messages.\n\n", argv[0], topic);
     //printf("Press ENTER to inject an error.\n");
     //printf("Press CTRL-D to exit.\n\n");
     
@@ -305,13 +307,14 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
     char msgbuf[1000];
     char header [50];
     char payload [50];
-    static signed long valUsage =0, valGenerating =0, valExporting =0;
+    static signed long valUsage =0, valGenerating =0, valExporting =0, valImporting =0;
     static signed long avgUsage =0, avgGenerating =0, avgExporting =0;
     static signed long sumUsage =0, sumGenerating =0, sumExporting =0;
     static signed long aryUsage[AVGOVER] ={0}, aryGenerating[AVGOVER] ={0}, aryExporting[AVGOVER] ={0};
     static int countUsage =0, countGenerating =0, countExporting =0;
     static int statusSocket =0, countON =0;
-    static int statusBoinc = 0, countShutdown = SHUTDOWNCOUNT, power_on_buf = 10;
+    static int statusMining = 0, countShutdown = SHUTDOWNCOUNT, power_on_buf = 20, GPUpwr = 0;
+    char command[200];
     
     FILE * pLogFile = NULL;
     FILE * pGraphFile = NULL;
@@ -438,17 +441,34 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       // printf("--- avg counters:  %d | %d | %d ---\n", countUsage, countExporting, countGenerating);
       // vvvvv  Additional logic here for WOL  vvvvvvvvvvvv
       if ((valUsage - valGenerating) >= 500) {  // added to ensure PC won't wake up due to spike usage 
-          statusBoinc = 1;
+          statusMining = 1;
       }
       
       if (countExporting == 0) {
           if (avgExporting > PCLOAD && valExporting > PCLOAD) {
-              if (statusBoinc != 1) {
-                  statusBoinc = 8;
+              if (statusMining != 1) {
+                  statusMining = 8;
                   system(". /home/pi/auto/wol_main.sh");
-              } else statusBoinc = 0;
-          } else statusBoinc = 0;
+              } else statusMining = 0;
+          } else statusMining = 0;
       }
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       
       
       
@@ -477,7 +497,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       } else {
           sprintf(msgbuf, "%s,%lu,%lu,%lu\n", timestr, valUsage, valGenerating, valExporting);
           fprintf(pGraphFile, "%s", msgbuf);
-          printf("Writen to graph log file:- %s", msgbuf);
+          printf("Written to graph log file:- %s", msgbuf);
           fclose(pGraphFile);
       }
       
@@ -488,9 +508,9 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
           fflush(stdout); // print everything in the stdout buffer
           // exit(1);
       } else {
-          sprintf(msgbuf, "%s | %d|%2d | %4lu | %4lu | %4lu \n", timestr, statusSocket, statusBoinc, valUsage, valGenerating, valExporting);
+          sprintf(msgbuf, "%s | %d|%2d | %4lu | %4lu | %4lu \n", timestr, statusSocket, statusMining, valUsage, valGenerating, valExporting);
           fprintf(pLogFile, "%s", msgbuf);
-          printf("Writen to log file:- %s", msgbuf);
+          printf("Written to log file:- %s", msgbuf);
           fclose(pLogFile);
       }
       
