@@ -15,7 +15,6 @@
 #include "templates/posix_sockets.h"
 
 /****** Adjustable variables **************/
-#define EN_SHUTDOWN 1 // set to 0 to disable shutdown, for generating noshutdown EXE on PC
 #define AVGOVER 2 
 #define SHUTDOWNCOUNT 10
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
@@ -29,6 +28,8 @@ const char defaultlogfilename[] = "/mnt/h/Temp/solar.log";
 //const char defaultlogfilename[] = "/var/ramdisk/solar.log";
 //const char defaultgraphname[] = "/var/ramdisk/solar_graph.log";
 char logfilename[100];
+int EN_SHUTDOWN = 1;  // set to 0 to disable shutdown, for generating noshutdown EXE on PC
+int statusMining = 0;  // Mining status, set initially in main, later used and changed in publish_callback 
 /*******************************************/
 
 
@@ -171,42 +172,48 @@ int main(int argc, const char *argv[])
 
     // vvvvvv -- WYXadded -- vvvvvv 
     pimote_setup (); // Setup Pimote GPIO 
-    if (argc >= 2) {  // Determine if we use command parameter or default logfilename 
-      strncpy(logfilename, argv[1], 99);
-      logfilename[99] = '\0';
-    } else {
-      strncpy(logfilename, defaultlogfilename, sizeof(defaultlogfilename));
+    strncpy(logfilename, defaultlogfilename, sizeof(defaultlogfilename));
+    if (argc > 1) {  // Determine if we use command parameter 
+        EN_SHUTDOWN = atoi(argv[1]);
+    } 
+    if (argc > 2) {
+        statusMining = atoi(argv[2]);
     }
+    
     if (EN_SHUTDOWN == 1) {
-      printf("\n\n   **** This program will shutdown the computer! ****  \n");
-      printf("\n   **  Close this program to use the computer ** \n"); 
-    }
+        printf("\n   **  ******** Attention! ******** ** \n\n"); 
+        printf("   **  This program will shutdown the computer! **  \n");
+    } 
+    printf("\n   **  CTRL-C to close this program and use the computer normally ** \n"); 
+    printf("\n   **  ******** Attention! ******** ** \n\n"); 
+    
     printf("\nWriting to log file:- %s \n", logfilename);
-    printf("Format:- time | statusSocket | statusMining | countShutdown | valUsage | valGenerating | valExporting");
+    printf("Format:- time | statusMining | countShutdown | valUsage | valGenerating | valExporting");
+    printf("\n Mining status:-  %d   ", statusMining);
     printf("\n\n");
     // ^^^^^^ -- WYXadded -- ^^^^^^  
     
     
-    /* get address (argv[1] if present) */
-    if (argc > 1) {
-        addr = argv[1];
-    } else {
-        addr = "192.168.5.5";
-    }
-
-    /* get port number (argv[2] if present) */
-    if (argc > 2) {
-        port = argv[2];
-    } else {
-        port = "1883";
-    }
-
-    /* get the topic name to publish */
-    if (argc > 3) {
-        topic = argv[3];
-    } else {
-        topic = "power/#";
-    }
+    // /* get address (argv[1] if present) */
+    // if (argc > 1) {
+    //     addr = argv[1];
+    // } else {
+         addr = "192.168.5.5";
+    // }
+    // 
+    // /* get port number (argv[2] if present) */
+    // if (argc > 2) {
+    //     port = argv[2];
+    // } else {
+         port = "1883";
+    // }
+    // 
+    // /* get the topic name to publish */
+    // if (argc > 3) {
+    //     topic = argv[3];
+    // } else {
+         topic = "power/#";
+    // }
 
     /* build the reconnect_state structure which will be passed to reconnect */
     struct reconnect_state_t reconnect_state;
@@ -317,7 +324,8 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
     static signed long aryUsage[AVGOVER] ={0}, aryGenerating[AVGOVER] ={0}, aryExporting[AVGOVER] ={0};
     static int countUsage =0, countGenerating =0, countExporting =0;
     static int statusSocket =0, countON =0;
-    static int statusMining = 0, countShutdown = SHUTDOWNCOUNT, power_on_buf = 20, GPUpwr = 0;
+    static int countShutdown = SHUTDOWNCOUNT, power_on_buf = 20;
+    static int GPUpwr_applied = 0, GPUpwr_new = 0;
     char command[200];
     
     FILE * pLogFile = NULL;
@@ -362,6 +370,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
     
     if (receivedflag == 3)  // below only run once for every set of data 
     {
+      printf ("\n");
       receivedflag = 0;
     
       // Socket switching logic: 
@@ -454,44 +463,50 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                 countShutdown = SHUTDOWNCOUNT; 
                 system("/mnt/c/Windows/system32/shutdown.exe -a 2> null"); 
                 system("/mnt/c/Users/wyx/AppData/Local/Programs/NiceHash\\ Miner/NiceHashMiner.exe &");
-                GPUpwr = valExporting; 
-                if (GPUpwr < 220) { // set GPUpwr 
-                    //todo set GPU power 
-                    sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d", GPUpwr);
+                GPUpwr_new = valExporting; 
+                if (GPUpwr_new < 225) { // set GPU power 
+                    GPUpwr_applied = GPUpwr_new; 
+                    sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                     system(command);
-                } else               // set GPU to 220 
-                    system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=220");
-            } else if (valImporting > 50) {
+                } else  {             // set GPU to max
+                    GPUpwr_applied = 225;
+                    system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=225 &");
+                }
+            } else if (valImporting > 20) {
                 // plan to shutdown 
                 if ((countShutdown < 1) && (power_on_buf < 1)) {
                     if (EN_SHUTDOWN == 1) system("/mnt/c/Windows/system32/shutdown.exe -s -t 300"); 
-                } else 
+                } else {
                     countShutdown = countShutdown - 1;
+                } 
             }
         } else {   // during mining 
             if (valExporting > 10) {
-                GPUpwr = GPUpwr + valExporting - 2; 
-                if (GPUpwr < 220) { // set GPUpwr 
-                    //todo set GPU power 
-                    sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d", GPUpwr);
+                GPUpwr_new = GPUpwr_applied + valExporting - 2; 
+                if (GPUpwr_new < 225) { // set GPU power 
+                    GPUpwr_applied = GPUpwr_new; 
+                    sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                     system(command);
-                } else  {             // set GPU to 220 
-                    system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=220");
+                } else  {             // set GPU to max  
+                    if (GPUpwr_applied != 225 ) {
+                        GPUpwr_applied = 225; 
+                        system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=225 &");
+                    }
                 }
             } else if (valImporting > 10) {
-                GPUpwr = GPUpwr - valImporting - 2; 
-                if (GPUpwr > 105) { // set GPUpwr 
-                    //todo set GPU power 
-                    sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d", GPUpwr);
+                GPUpwr_new = GPUpwr_applied - valImporting - 2; 
+                if (GPUpwr_new > 105) { // set GPU power 
+                    GPUpwr_applied = GPUpwr_new; 
+                    sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 } else {             // stop mining, set GPU to 260 
                     statusMining = 0;
                     system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
-                    system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=260");
+                    system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=260 &");
                 }
             }
         }
-        // ^^^^^  Additional logic here for BIONIC  vvvvvvvvvvvv
+        // ^^^^^  Additional logic here for PC  vvvvvvvvvvvv
       
       // Log file for graph 
       /*pGraphFile = fopen(defaultgraphname, "a"); // append to the end of the file 
@@ -512,13 +527,12 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
           fflush(stdout); // print everything in the stdout buffer
           // exit(1);
       } else {
-          sprintf(msgbuf, "%s | %d|%2d|%2d | %4lu | %4lu | %4lu \n", timestr, statusSocket, statusMining, countShutdown, valUsage, valGenerating, valExporting);
+          sprintf(msgbuf, "%s | %d | %d | %4lu | %4lu | %4lu \n", timestr, statusMining, countShutdown, valUsage, valGenerating, valExporting);
           fprintf(pLogFile, "%s", msgbuf);
           printf("Written to log file:- %s", msgbuf);
           fclose(pLogFile);
       }
       
-      printf ("\n");
       fflush(stdout); // print everything in the stdout buffer
     
     }
