@@ -177,6 +177,10 @@ int main(int argc, const char *argv[])
     } else {
       strncpy(logfilename, defaultlogfilename, sizeof(defaultlogfilename));
     }
+    /* if (EN_SHUTDOWN == 1) {
+      printf("\n\n   **** This program will shutdown the computer! ****  \n");
+      printf("\n   **  Close this program to use the computer ** \n"); 
+    } */
     printf("\nWriting to log file:- %s \n", logfilename);
     printf("Format:- time | statusSocket | statusMining | countShutdown | valUsage | valGenerating | valExporting");
     printf("\n\n");
@@ -535,4 +539,3 @@ void* client_refresher(void* client)
     }
     return NULL;
 }
-
