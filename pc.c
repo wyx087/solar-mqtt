@@ -455,6 +455,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
         // vvvvv  Additional logic here for PC  vvvvvvvvvvvv
         if (power_on_buf > 0) power_on_buf--; 
         valImporting = valUsage - valGenerating;
+        printf("**  CTRL-C to close this program and use the computer normally ** \n"); 
         
         if (statusMining == 0) {  // Not mining 
             if (valExporting > 120) {
@@ -463,7 +464,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                 countShutdown = SHUTDOWNCOUNT; 
                 system("/mnt/c/Windows/system32/shutdown.exe -a 2> null"); 
                 system("/mnt/c/Users/wyx/AppData/Local/Programs/NiceHash\\ Miner/NiceHashMiner.exe &");
-                GPUpwr_new = valExporting; 
+                GPUpwr_new = valExporting - 20; 
                 if (GPUpwr_new < 225) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
                     sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
@@ -482,7 +483,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
             }
         } else {   // during mining 
             if (valExporting > 10) {
-                GPUpwr_new = GPUpwr_applied + valExporting - 2; 
+                GPUpwr_new = GPUpwr_applied + valExporting - 4; 
                 if (GPUpwr_new < 225) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
                     sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
@@ -494,7 +495,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                     }
                 }
             } else if (valImporting > 10) {
-                GPUpwr_new = GPUpwr_applied - valImporting - 2; 
+                GPUpwr_new = GPUpwr_applied - valImporting - 4; 
                 if (GPUpwr_new > 105) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
                     sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
