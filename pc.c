@@ -28,7 +28,8 @@ const char defaultlogfilename[] = "/mnt/h/Temp/solar.log";
 //const char defaultlogfilename[] = "/var/ramdisk/solar.log";
 //const char defaultgraphname[] = "/var/ramdisk/solar_graph.log";
 char logfilename[100];
-int EN_SHUTDOWN = 1;  // set to 0 to disable shutdown, for generating noshutdown EXE on PC
+int EN_SHUTDOWN = 1;  // set to 0 to disable shutdown
+int EN_STOPMINING = 1;  // set to 0 to disable stop mining
 int statusMining = 0;  // Mining status, set initially in main, later used and changed in publish_callback 
 /*******************************************/
 
@@ -176,8 +177,11 @@ int main(int argc, const char *argv[])
     if (argc > 1) {  // Determine if we use command parameter 
         EN_SHUTDOWN = atoi(argv[1]);
     } 
-    if (argc > 2) {
-        statusMining = atoi(argv[2]);
+    if (argc > 2) {  // Determine if we use command parameter 
+        EN_STOPMINING = atoi(argv[2]);
+    } 
+    if (argc > 3) {
+        statusMining = atoi(argv[3]);
     }
     
     if (EN_SHUTDOWN == 1) {
@@ -189,6 +193,7 @@ int main(int argc, const char *argv[])
     
     printf("\nWriting to log file:- %s \n", logfilename);
     printf("Format:- time | statusMining | countShutdown | valUsage | valGenerating | valExporting");
+    printf("\n Stop mining setting:-  %d   ", EN_STOPMINING);
     printf("\n Mining status:-  %d   ", statusMining);
     printf("\n\n");
     // ^^^^^^ -- WYXadded -- ^^^^^^  
@@ -325,7 +330,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
     static int countUsage =0, countGenerating =0, countExporting =0;
     static int statusSocket =0, countON =0;
     static int countShutdown = SHUTDOWNCOUNT, power_on_buf = 20;
-    static int GPUpwr_applied = 0, GPUpwr_new = 0;
+    static int GPUpwr_applied = 150, GPUpwr_new = 0;
     char command[200];
     
     FILE * pLogFile = NULL;
@@ -501,9 +506,15 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                     sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 } else {             // stop mining, set GPU to 260 
-                    statusMining = 0;
-                    system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
-                    system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=260 &");
+                    if (EN_STOPMINING == 1) {
+                        statusMining = 0;
+                        system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
+                        system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=260 &");
+                    } else {
+                        GPUpwr_applied = 105; 
+                        sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
+                        system(command);
+                    }
                 }
             }
         }

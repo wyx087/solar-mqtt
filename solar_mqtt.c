@@ -29,6 +29,7 @@ const char defaultlogfilename[] = "/var/ramdisk/solar.log";
 const char defaultgraphname[] = "/var/ramdisk/solar_graph.log";
 char logfilename[100];
 int EN_SHUTDOWN = 1;  // set to 0 to disable shutdown, for generating noshutdown EXE on PC
+int EN_STOPMINING = 1;  // set to 0 to disable stop mining
 int statusMining = 0;  // Mining status, set initially in main, later used and changed in publish_callback 
 /*******************************************/
 
@@ -176,8 +177,11 @@ int main(int argc, const char *argv[])
     /* if (argc > 1) {  // Determine if we use command parameter 
         EN_SHUTDOWN = atoi(argv[1]);
     } 
-    if (argc > 2) {
-        statusMining = atoi(argv[2]);
+    if (argc > 2) {  // Determine if we use command parameter 
+        EN_STOPMINING = atoi(argv[2]);
+    } 
+    if (argc > 3) {
+        statusMining = atoi(argv[3]);
     }
     
     if (EN_SHUTDOWN == 1) {
