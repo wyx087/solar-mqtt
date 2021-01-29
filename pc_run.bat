@@ -1,15 +1,20 @@
 @echo off 
 
-set nighthourlow=0
-set nighthourhigh=7
+set nighthourlow=00
+set nighthourhigh=07
 ::If in above range, run night mode. When hour changes to %nighthourhigh%, GOTO NIGHTFINISH   
 
-set hour=%time:~0,2%
-if "%hour:~0,1%" == " " set hour=0%hour:~1,1%
+:: Local time 
+rem set hour=%time:~0,2%
+rem if "%hour:~0,1%" == " " set hour=0%hour:~1,1%
 rem echo hour=%hour%
-set min=%time:~3,2%
-if "%min:~0,1%" == " " set min=0%min:~1,1%
+rem set min=%time:~3,2%
+rem if "%min:~0,1%" == " " set min=0%min:~1,1%
 rem echo min=%min%
+:: UTC 
+for /f %%x in ('wmic path win32_utctime get /format:list ^| findstr "="') do set %%x 
+echo hour=%hour%
+
 IF %hour% GEQ %nighthourlow% IF %hour% LSS %nighthourhigh% (GOTO NIGHTRUN)
 
 :NORMAL 
@@ -27,21 +32,21 @@ GOTO END
 :NIGHTRUN
 echo Night time mining 
 
-	nvidia-smi --power-limit=165
+	TIMEOUT /T 30
+	nvidia-smi --power-limit=155
 	start "" "c:\Users\wyx\AppData\Local\Programs\NiceHash Miner\NiceHashMiner.exe"
 
 	:LOOP
-		TIMEOUT /T 30 
-		set hour=%time:~0,2%
-		if "%hour:~0,1%" == " " set hour=0%hour:~1,1%
+		TIMEOUT /T 300  > nul
+		nvidia-smi --power-limit=155 > nul
+		for /f %%x in ('wmic path win32_utctime get /format:list ^| findstr "="') do set %%x 
 		IF %hour% GEQ %nighthourhigh% (GOTO NIGHTFINISH)
 	GOTO LOOP 
 
 	:NIGHTFINISH
+	taskkill /T /IM NiceHashMiner.exe
 	nvidia-smi --power-limit=260
-	shutdown.exe -s -t 300
+	shutdown.exe -s -t 60
 
 GOTO END 
 :END 
-
-pause
