@@ -506,12 +506,12 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                     sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 } else {             // stop mining, set GPU to 260 
-                    if (EN_STOPMINING == 1) {
+                    if ((EN_STOPMINING == 1) && (GPUpwr_new < 75)) {
                         statusMining = 0;
                         system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
                         system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=260 &");
                     } else {
-                        GPUpwr_applied = 105; 
+                        GPUpwr_applied = 104; 
                         sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                         system(command);
                     }

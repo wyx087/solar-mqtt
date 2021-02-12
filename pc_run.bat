@@ -13,7 +13,7 @@ rem if "%min:~0,1%" == " " set min=0%min:~1,1%
 rem echo min=%min%
 :: UTC 
 for /f %%x in ('wmic path win32_utctime get /format:list ^| findstr "="') do set %%x 
-echo hour=%hour%
+echo hour=%hour%; minute=%minute%
 
 IF %hour% GEQ %nighthourlow% IF %hour% LSS %nighthourhigh% (GOTO NIGHTRUN)
 
@@ -33,20 +33,22 @@ GOTO END
 echo Night time mining 
 
 	TIMEOUT /T 30
-	nvidia-smi --power-limit=155
+	rem turn off display using this: c:\windows\system32\DisplaySwitch /external
+	
+	nvidia-smi --power-limit=160
 	start "" "c:\Users\wyx\AppData\Local\Programs\NiceHash Miner\NiceHashMiner.exe"
 
 	:LOOP
 		TIMEOUT /T 300  > nul
-		nvidia-smi --power-limit=155 > nul
+		nvidia-smi --power-limit=160 > nul
 		for /f %%x in ('wmic path win32_utctime get /format:list ^| findstr "="') do set %%x 
-		IF %hour% GEQ %nighthourhigh% (GOTO NIGHTFINISH)
+		IF %hour% GEQ %nighthourhigh%  IF %minute% GEQ 20 (GOTO NIGHTFINISH)
 	GOTO LOOP 
 
 	:NIGHTFINISH
 	taskkill /T /IM NiceHashMiner.exe
 	nvidia-smi --power-limit=260
-	shutdown.exe -s -t 60
+	shutdown.exe -s -t 30
 
 GOTO END 
 :END 
