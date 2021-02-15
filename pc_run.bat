@@ -48,7 +48,7 @@ echo Night time mining
 	:NIGHTFINISH
 	taskkill /T /IM NiceHashMiner.exe
 	nvidia-smi --power-limit=260
-	shutdown.exe -s -t 30
+	shutdown.exe -s -hybrid -t 30
 
 GOTO END 
 :END 

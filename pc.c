@@ -481,7 +481,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
             } else if (valImporting > 20) {
                 // plan to shutdown 
                 if ((countShutdown < 1) && (power_on_buf < 1)) {
-                    if (EN_SHUTDOWN == 1) system("/mnt/c/Windows/system32/shutdown.exe -s -t 300"); 
+                    if (EN_SHUTDOWN == 1) system("/mnt/c/Windows/system32/shutdown.exe -s -hybrid -t 300"); 
                 } else {
                     countShutdown = countShutdown - 1;
                 } 
