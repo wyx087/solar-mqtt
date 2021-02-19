@@ -515,6 +515,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                             system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=260 &");
                         } else {
                             MiningStopDelay = MiningStopDelay - 1;
+                            printf("Stop mining delayed, cycles left: %d \n", MiningStopDelay);
                         }
                     } else {
                         GPUpwr_applied = 104; 
