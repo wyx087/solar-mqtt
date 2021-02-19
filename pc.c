@@ -15,7 +15,7 @@
 #include "templates/posix_sockets.h"
 
 /****** Adjustable variables **************/
-#define AVGOVER 2 
+#define AVGOVER 3
 #define SHUTDOWNCOUNT 10
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
 
@@ -330,7 +330,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
     static int countUsage =0, countGenerating =0, countExporting =0;
     static int statusSocket =0, countON =0;
     static int countShutdown = SHUTDOWNCOUNT, power_on_buf = 20;
-    static int GPUpwr_applied = 150, GPUpwr_new = 0;
+    static int GPUpwr_applied = 150, GPUpwr_new = 0, MiningStopDelay = AVGOVER;
     char command[200];
     
     FILE * pLogFile = NULL;
@@ -488,6 +488,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
             }
         } else {   // during mining 
             if (valExporting > 10) {
+                MiningStopDelay = AVGOVER;
                 GPUpwr_new = GPUpwr_applied + valExporting - 4; 
                 if (GPUpwr_new < 225) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
@@ -506,10 +507,15 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                     sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 } else {             // stop mining, set GPU to 260 
-                    if ((EN_STOPMINING == 1) && (GPUpwr_new < 75)) {
-                        statusMining = 0;
-                        system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
-                        system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=260 &");
+                    if ((EN_STOPMINING == 1) && (GPUpwr_new < 70)) {
+                        if (MiningStopDelay < 1) {
+                            MiningStopDelay = AVGOVER;
+                            statusMining = 0;
+                            system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
+                            system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=260 &");
+                        } else {
+                            MiningStopDelay = MiningStopDelay - 1;
+                        }
                     } else {
                         GPUpwr_applied = 104; 
                         sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
