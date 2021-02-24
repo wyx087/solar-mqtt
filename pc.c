@@ -31,6 +31,7 @@ char logfilename[100];
 int EN_SHUTDOWN = 1;  // set to 0 to disable shutdown
 int EN_STOPMINING = 1;  // set to 0 to disable stop mining
 int statusMining = 0;  // Mining status, set initially in main, later used and changed in publish_callback 
+int power_on_buf = 20; // Slows down Shutdown so can have time to close program 
 /*******************************************/
 
 
@@ -183,6 +184,9 @@ int main(int argc, const char *argv[])
     if (argc > 3) {
         statusMining = atoi(argv[3]);
     }
+    if (argc > 4) {
+        power_on_buf = atoi(argv[3]);
+    }
     
     if (EN_SHUTDOWN == 1) {
         printf("\n   **  ******** Attention! ******** ** \n\n"); 
@@ -191,11 +195,14 @@ int main(int argc, const char *argv[])
     printf("\n   **  CTRL-C to close this program and use the computer normally ** \n"); 
     printf("\n   **  ******** Attention! ******** ** \n\n"); 
     
-    printf("\nWriting to log file:- %s \n", logfilename);
-    printf("Format:- time | statusMining | countShutdown | valUsage | valGenerating | valExporting");
+    printf("\n Shutdown setting:-  %d   ", EN_SHUTDOWN);
     printf("\n Stop mining setting:-  %d   ", EN_STOPMINING);
     printf("\n Mining status:-  %d   ", statusMining);
-    printf("\n\n");
+    printf("\n Shutdown delay starting at:-  %d   ", power_on_buf);
+    printf("\n");
+    printf("\nWriting to log file:- %s \n", logfilename);
+    printf("Format:- time | statusMining | countShutdown | valUsage | valGenerating | valExporting");
+    printf("\n");
     // ^^^^^^ -- WYXadded -- ^^^^^^  
     
     
@@ -329,7 +336,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
     static signed long aryUsage[AVGOVER] ={0}, aryGenerating[AVGOVER] ={0}, aryExporting[AVGOVER] ={0};
     static int countUsage =0, countGenerating =0, countExporting =0;
     static int statusSocket =0, countON =0;
-    static int countShutdown = SHUTDOWNCOUNT, power_on_buf = 20;
+    static int countShutdown = SHUTDOWNCOUNT;
     static int GPUpwr_applied = 150, GPUpwr_new = 0, MiningStopDelay = AVGOVER;
     char command[200];
     
@@ -460,7 +467,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
         // vvvvv  Additional logic here for PC  vvvvvvvvvvvv
         if (power_on_buf > 0) power_on_buf--; 
         valImporting = valUsage - valGenerating;
-        printf("**  CTRL-C to close this program and use the computer normally ** \n"); 
+        printf("  **  CTRL-C to close this program and the miner ** \n"); 
         
         if (statusMining == 0) {  // Not mining 
             if (valExporting > 120) {
@@ -479,11 +486,10 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                     system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=225 &");
                 }
             } else if (valImporting > 20) {
+                countShutdown = countShutdown - 1;
                 // plan to shutdown 
                 if ((countShutdown < 1) && (power_on_buf < 1)) {
                     if (EN_SHUTDOWN == 1) system("/mnt/c/Windows/system32/shutdown.exe -s -hybrid -t 300"); 
-                } else {
-                    countShutdown = countShutdown - 1;
                 } 
             }
         } else {   // during mining 
@@ -555,7 +561,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       } else {
           sprintf(msgbuf, "%s | %d | %d | %4lu | %4lu | %4lu \n", timestr, statusMining, countShutdown, valUsage, valGenerating, valExporting);
           fprintf(pLogFile, "%s", msgbuf);
-          printf("Written to log file:- %s", msgbuf);
+          printf("Written to log file:----> %s", msgbuf);
           fclose(pLogFile);
       }
       
