@@ -515,6 +515,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                 } else {             // stop mining, set GPU to 260 
                     if ((EN_STOPMINING == 1) && (GPUpwr_new < 80)) {
                         if (valImporting > 2000) {
+                            statusMining = 0;
                             system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
                             system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=260 &");
                             if (EN_SHUTDOWN == 1) system("/mnt/c/Windows/system32/shutdown.exe -s -hybrid -t 300"); 
