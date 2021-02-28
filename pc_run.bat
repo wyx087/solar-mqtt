@@ -21,29 +21,28 @@ IF %hour% GEQ %nighthourlow% IF %hour% LSS %nighthourhigh% (GOTO NIGHTRUN)
 echo Day time, run normally: 
 
 	tasklist /fi "imagename eq NiceHashMiner.exe" |find "NiceHashMiner.exe" > nul
-	if errorlevel 1    (wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 0)    else    (wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 1)
+	if errorlevel 1    (wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 0 25 )    else    (wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 1 25 )
 	:: Above line says if (process not running) else (running).  
 	
 GOTO END 
 :NIGHTRUN
 echo Night time direct mining: 
 
-	TIMEOUT /T 30
+	TIMEOUT /T 60
 	rem turn off display using this: c:\windows\system32\DisplaySwitch /external
 	
-	nvidia-smi --power-limit=160
+	nvidia-smi --power-limit=150
 	start "" "c:\Users\wyx\AppData\Local\Programs\NiceHash Miner\NiceHashMiner.exe"
 
 	:LOOP
-		TIMEOUT /T 300  > nul
-		nvidia-smi --power-limit=160 > nul
+		TIMEOUT /T 120  > nul
 		for /f %%x in ('wmic path win32_utctime get /format:list ^| findstr "="') do set %%x 
 		IF %hour% GEQ %nighthourhigh%  IF %minute% GEQ 20 (GOTO NIGHTFINISH)
 	GOTO LOOP 
 
 	:NIGHTFINISH
 	echo Ending night time mining. Transition to Daytime program: 
-	wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 1 5
+	wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 1 2
 
 GOTO END 
 :END 

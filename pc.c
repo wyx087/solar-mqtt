@@ -31,7 +31,7 @@ char logfilename[100];
 int EN_SHUTDOWN = 1;  // set to 0 to disable shutdown
 int EN_STOPMINING = 1;  // set to 0 to disable stop mining
 int statusMining = 0;  // Mining status, set initially in main, later used and changed in publish_callback 
-int power_on_buf = 20; // Slows down Shutdown so can have time to close program 
+int countShutdown = SHUTDOWNCOUNT;  // Slows down Shutdown so can have time to close program 
 /*******************************************/
 
 
@@ -175,17 +175,17 @@ int main(int argc, const char *argv[])
     // vvvvvv -- WYXadded -- vvvvvv 
     pimote_setup (); // Setup Pimote GPIO 
     strncpy(logfilename, defaultlogfilename, sizeof(defaultlogfilename));
-    if (argc > 1) {  // Determine if we use command parameter 
+    if (argc > 1) {  // Determine if we will shutdown computer (default yes) 
         EN_SHUTDOWN = atoi(argv[1]);
     } 
-    if (argc > 2) {  // Determine if we use command parameter 
+    if (argc > 2) {  // Whether we will stop mining (default yes) 
         EN_STOPMINING = atoi(argv[2]);
     } 
-    if (argc > 3) {
+    if (argc > 3) {  // Is it currently mining? (default no) 
         statusMining = atoi(argv[3]);
     }
-    if (argc > 4) {
-        power_on_buf = atoi(argv[3]);
+    if (argc > 4) {  // Slows down Shutdown so can have time to close program 
+        countShutdown = atoi(argv[4]);
     }
     
     if (EN_SHUTDOWN == 1) {
@@ -198,7 +198,7 @@ int main(int argc, const char *argv[])
     printf("\n Shutdown setting:-  %d   ", EN_SHUTDOWN);
     printf("\n Stop mining setting:-  %d   ", EN_STOPMINING);
     printf("\n Mining status:-  %d   ", statusMining);
-    printf("\n Shutdown delay starting at:-  %d   ", power_on_buf);
+    printf("\n First Shutdown delay:-  %d   ", countShutdown);
     printf("\n");
     printf("\nWriting to log file:- %s \n", logfilename);
     printf("Format:- time | statusMining | countShutdown | valUsage | valGenerating | valExporting");
@@ -336,7 +336,6 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
     static signed long aryUsage[AVGOVER] ={0}, aryGenerating[AVGOVER] ={0}, aryExporting[AVGOVER] ={0};
     static int countUsage =0, countGenerating =0, countExporting =0;
     static int statusSocket =0, countON =0;
-    static int countShutdown = SHUTDOWNCOUNT;
     static int GPUpwr_applied = 150, GPUpwr_new = 0, MiningStopDelay = AVGOVER;
     char command[200];
     
@@ -465,7 +464,6 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       avgExporting = sumExporting / AVGOVER;
       // printf("--- avg counters:  %d | %d | %d ---\n", countUsage, countExporting, countGenerating);
         // vvvvv  Additional logic here for PC  vvvvvvvvvvvv
-        if (power_on_buf > 0) power_on_buf--; 
         valImporting = valUsage - valGenerating;
         printf("  **  CTRL-C to close this program and the miner ** \n"); 
         
@@ -477,18 +475,19 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                 system("/mnt/c/Windows/system32/shutdown.exe -a 2> null"); 
                 system("/mnt/c/Users/wyx/AppData/Local/Programs/NiceHash\\ Miner/NiceHashMiner.exe &");
                 GPUpwr_new = valExporting - 20; 
-                if (GPUpwr_new < 225) { // set GPU power 
+                if (GPUpwr_new < 201) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
                     sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 } else  {             // set GPU to max
-                    GPUpwr_applied = 225;
-                    system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=225 &");
+                    GPUpwr_applied = 201;
+                    sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
+                    system(command);
                 }
             } else if (valImporting > 20) {
                 countShutdown = countShutdown - 1;
                 // plan to shutdown 
-                if ((countShutdown < 1) && (power_on_buf < 1)) {
+                if (countShutdown < 1) {
                     if (EN_SHUTDOWN == 1) system("/mnt/c/Windows/system32/shutdown.exe -s -hybrid -t 300"); 
                 } 
             }
@@ -496,14 +495,15 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
             if (valExporting > 10) {
                 MiningStopDelay = AVGOVER;
                 GPUpwr_new = GPUpwr_applied + valExporting - 4; 
-                if (GPUpwr_new < 225) { // set GPU power 
+                if (GPUpwr_new < 201) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
                     sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 } else  {             // set GPU to max  
-                    if (GPUpwr_applied != 225 ) {
-                        GPUpwr_applied = 225; 
-                        system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=225 &");
+                    if (GPUpwr_applied != 201 ) {
+                        GPUpwr_applied = 201; 
+                        sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
+                        system(command);
                     }
                 }
             } else if (valImporting > 10) {
@@ -514,7 +514,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                     system(command);
                 } else {             // stop mining, set GPU to 260 
                     if ((EN_STOPMINING == 1) && (GPUpwr_new < 80)) {
-                        if (valImporting > 2000) {
+                        if (valImporting > 1500) {
                             statusMining = 0;
                             system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
                             system("/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=260 &");
