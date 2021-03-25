@@ -20,7 +20,7 @@ IF %hour% GEQ %nighthourlow% IF %hour% LSS %nighthourhigh% (GOTO NIGHTRUN)
 :NORMAL 
 echo Day time, run normally: 
 
-    start "" "C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe" -Profile4
+    taskkill /IM MSIAfterburner.exe
 	tasklist /fi "imagename eq NiceHashMiner.exe" |find "NiceHashMiner.exe" > nul
 	if errorlevel 1    (wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 0 25 )    else    (wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 1 25 )
 	:: Above line says if (process not running) else (running).  
@@ -33,7 +33,9 @@ echo Night time direct mining:
 	rem turn off display using this: c:\windows\system32\DisplaySwitch /external
 	
 	rem using MSIAfterbuner profile instead of this: nvidia-smi --power-limit=150
-    start "" "C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe" -Profile4
+	start "" "C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe" -Profile4
+    TIMEOUT /T 1
+    taskkill /IM MSIAfterburner.exe
 	start "" "c:\Users\wyx\AppData\Local\Programs\NiceHash Miner\NiceHashMiner.exe"
 
 	:LOOP
@@ -44,6 +46,9 @@ echo Night time direct mining:
 
 	:NIGHTFINISH
 	echo Ending night time mining. Transition to Daytime program: 
+	start "" "C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe" -Profile5
+    TIMEOUT /T 1
+    taskkill /IM MSIAfterburner.exe
 	wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 1 2
 
 GOTO END 
