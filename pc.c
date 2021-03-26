@@ -465,6 +465,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       // printf("--- avg counters:  %d | %d | %d ---\n", countUsage, countExporting, countGenerating);
         // vvvvv  Additional logic here for PC  vvvvvvvvvvvv
         valImporting = valUsage - valGenerating;
+        if (EN_SHUTDOWN == 1) printf (" ^^ SHUTDOWN enabled! ^^");
         printf("  **  CTRL-C to close this program and the miner ** \n"); 
         
         if (statusMining == 0) {  // Not mining 

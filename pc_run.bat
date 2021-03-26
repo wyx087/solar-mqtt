@@ -20,7 +20,13 @@ IF %hour% GEQ %nighthourlow% IF %hour% LSS %nighthourhigh% (GOTO NIGHTRUN)
 :NORMAL 
 echo Day time, run normally: 
 
-    taskkill /IM MSIAfterburner.exe
+    TIMEOUT /T 15 
+    :TERMINATE_NORMAL 
+        taskkill /IM MSIAfterburner.exe
+        TIMEOUT /T 1 > nul
+        tasklist /fi "imagename eq MSIAfterburner.exe" |find "MSIAfterburner.exe" > nul
+        if errorlevel 1   (GOTO CONTINUE_NORMAL )    else    (GOTO TERMINATE_NORMAL )
+    :CONTINUE_NORMAL 
 	tasklist /fi "imagename eq NiceHashMiner.exe" |find "NiceHashMiner.exe" > nul
 	if errorlevel 1    (wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 0 25 )    else    (wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 1 25 )
 	:: Above line says if (process not running) else (running).  
@@ -34,8 +40,13 @@ echo Night time direct mining:
 	
 	rem using MSIAfterbuner profile instead of this: nvidia-smi --power-limit=150
 	start "" "C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe" -Profile4
-    TIMEOUT /T 1
-    taskkill /IM MSIAfterburner.exe
+    TIMEOUT /T 5
+    :TERMINATE_NIGHT 
+        taskkill /IM MSIAfterburner.exe
+        TIMEOUT /T 1 > nul
+        tasklist /fi "imagename eq MSIAfterburner.exe" |find "MSIAfterburner.exe" > nul
+        if errorlevel 1   (GOTO CONTINUE_NIGHT )    else    (GOTO TERMINATE_NIGHT )
+    :CONTINUE_NIGHT 
 	start "" "c:\Users\wyx\AppData\Local\Programs\NiceHash Miner\NiceHashMiner.exe"
 
 	:LOOP
@@ -47,8 +58,13 @@ echo Night time direct mining:
 	:NIGHTFINISH
 	echo Ending night time mining. Transition to Daytime program: 
 	start "" "C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe" -Profile5
-    TIMEOUT /T 1
-    taskkill /IM MSIAfterburner.exe
+    TIMEOUT /T 5
+    :TERMINATE_NIGHTFIN 
+        taskkill /IM MSIAfterburner.exe
+        TIMEOUT /T 1 > nul
+        tasklist /fi "imagename eq MSIAfterburner.exe" |find "MSIAfterburner.exe" > nul
+        if errorlevel 1   (GOTO CONTINUE_NIGHTFIN )    else    (GOTO TERMINATE_NIGHTFIN )
+    :CONTINUE_NIGHTFIN 
 	wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 1 2
 
 GOTO END 
