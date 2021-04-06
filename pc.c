@@ -19,6 +19,8 @@
 #define SHUTDOWNCOUNT 10
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
 
+#define GPUpwrMAX 180
+
 #define PLUG1ON     60
 #define PLUG2ON     600
 #define PLUGSON     650
@@ -476,12 +478,12 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                 system("/mnt/c/Windows/system32/shutdown.exe -a 2> null"); 
                 system("/mnt/c/Users/wyx/AppData/Local/Programs/NiceHash\\ Miner/NiceHashMiner.exe &");
                 GPUpwr_new = valExporting - 20; 
-                if (GPUpwr_new < 201) { // set GPU power 
+                if (GPUpwr_new < GPUpwrMAX) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
                     sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 } else  {             // set GPU to max
-                    GPUpwr_applied = 201;
+                    GPUpwr_applied = GPUpwrMAX;
                     sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 }
@@ -495,14 +497,15 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
         } else {   // during mining 
             if (valExporting > 10) {
                 MiningStopDelay = AVGOVER;
+                countShutdown = SHUTDOWNCOUNT; 
                 GPUpwr_new = GPUpwr_applied + valExporting - 4; 
-                if (GPUpwr_new < 201) { // set GPU power 
+                if (GPUpwr_new < GPUpwrMAX) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
                     sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 } else  {             // set GPU to max  
-                    if (GPUpwr_applied != 201 ) {
-                        GPUpwr_applied = 201; 
+                    if (GPUpwr_applied != GPUpwrMAX ) {
+                        GPUpwr_applied = GPUpwrMAX; 
                         sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                         system(command);
                     }
