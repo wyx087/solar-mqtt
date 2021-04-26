@@ -19,7 +19,7 @@
 #define SHUTDOWNCOUNT 10
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
 
-#define GPUpwrMAX 180
+#define GPUpwrMAX 195
 
 #define PLUG1ON     60
 #define PLUG2ON     600
@@ -487,6 +487,9 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                     sprintf(command, "/mnt/c/Windows/system32/nvidia-smi.exe --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 }
+            } else if (valExporting > 20) {
+              countShutdown = SHUTDOWNCOUNT; 
+              system("/mnt/c/Windows/system32/shutdown.exe -a 2> null"); 
             } else if (valImporting > 20) {
                 countShutdown = countShutdown - 1;
                 // plan to shutdown 
