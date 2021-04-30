@@ -21,6 +21,8 @@ IF %hour% GEQ %nighthourlow% IF %hour% LSS %nighthourhigh% (GOTO NIGHTRUN)
 echo Day time, run normally: 
 
     TIMEOUT /T 15 
+    start "" "C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe" -Profile4
+    TIMEOUT /T 1 > nul
     :TERMINATE_NORMAL 
         taskkill /IM MSIAfterburner.exe
         TIMEOUT /T 1 > nul
@@ -57,14 +59,6 @@ echo Night time direct mining:
 
 	:NIGHTFINISH
 	echo Ending night time mining. Transition to Daytime program: 
-	start "" "C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe" -Profile5
-    TIMEOUT /T 5
-    :TERMINATE_NIGHTFIN 
-        taskkill /IM MSIAfterburner.exe
-        TIMEOUT /T 1 > nul
-        tasklist /fi "imagename eq MSIAfterburner.exe" |find "MSIAfterburner.exe" > nul
-        if errorlevel 1   (GOTO CONTINUE_NIGHTFIN )    else    (GOTO TERMINATE_NIGHTFIN )
-    :CONTINUE_NIGHTFIN 
 	wsl /mnt/g/programs/NiceHash_auto/pc.exe 1 1 1 2
 
 GOTO END 
