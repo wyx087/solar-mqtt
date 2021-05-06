@@ -19,7 +19,7 @@
 #define SHUTDOWNCOUNT 10
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
 
-#define GPUpwrMAX 170
+#define GPUpwrMAX 175
 
 #define PLUG1ON     60
 #define PLUG2ON     600
