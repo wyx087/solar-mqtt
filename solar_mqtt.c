@@ -25,99 +25,13 @@
 #define PCLOAD      250
 
 // const char defaultlogfilename[] = "/mnt/h/Temp/solar.log";
-const char defaultlogfilename[] = "/var/ramdisk/solar.log";
-const char defaultgraphname[] = "/var/ramdisk/solar_graph.log";
+const char defaultlogfilename[] = "/mnt/ramdisk/solar.log";
+const char defaultgraphname[] = "/mnt/ramdisk/solar_graph.log";
 char logfilename[100];
 int EN_SHUTDOWN = 1;  // set to 0 to disable shutdown, for generating noshutdown EXE on PC
 int EN_STOPMINING = 1;  // set to 0 to disable stop mining
 int statusMining = 0;  // Mining status, set initially in main, later used and changed in publish_callback 
 /*******************************************/
-
-
-// vvvvvv -- Pimote control code -- vvvvvv 
-//    Insert at the top of the code 
-#include <wiringPi.h>
-  #define	D0	    0
-  #define	D1	    3
-  #define	D2	    4
-  #define	D3	    2
-  #define	ModSel  5
-  #define	CE      6 
-void pimote_setup (void) {
-  wiringPiSetup () ;
-  // Set GPIO modes 
-  pinMode (D0, OUTPUT);
-  pinMode (D1, OUTPUT);
-  pinMode (D2, OUTPUT);
-  pinMode (D3, OUTPUT);
-  pinMode (ModSel, OUTPUT);
-  pinMode (CE, OUTPUT);
-  delay (100);    // in ms 
-  // Set initial values 
-  digitalWrite (D0, LOW);
-  digitalWrite (D1, LOW);
-  digitalWrite (D2, LOW);
-  digitalWrite (D3, LOW);
-  digitalWrite (ModSel, LOW);
-  digitalWrite (CE, LOW);
-  delay (100);    // in ms  
-}
-int pimote_onoff (int socket, int on1off) {
-  int r = 0;
-  if (on1off == 1) {
-    printf ("Pimote turning ON ");
-    digitalWrite (D3, HIGH);  // Turn on 
-  } else {
-    printf ("Pimote turning OFF ");
-    digitalWrite (D3, LOW);  // Turn off 
-  } 
-  switch (socket) {
-    case 1:
-      printf ("socket 1.\n");
-      digitalWrite (D2, HIGH);
-      digitalWrite (D1, HIGH);
-      digitalWrite (D0, HIGH);
-      r = 1;
-      break;
-    case 2:
-      printf ("socket 2.\n");
-      digitalWrite (D2, HIGH);
-      digitalWrite (D1, HIGH);
-      digitalWrite (D0, LOW);
-      r = 2;
-      break;
-    case 3:
-      printf ("socket 3.\n");
-      digitalWrite (D2, HIGH);
-      digitalWrite (D1, LOW);
-      digitalWrite (D0, HIGH);
-      r = 3;
-      break;
-    case 4:
-      printf ("socket 4.\n");
-      digitalWrite (D2, HIGH);
-      digitalWrite (D1, LOW);
-      digitalWrite (D0, LOW);
-      r = 4;
-      break;
-    default:
-      printf ("ALL sockets.\n");
-      digitalWrite (D2, LOW);
-      digitalWrite (D1, HIGH);
-      digitalWrite (D0, HIGH);
-      r = 0;
-  }
-  // Execute by toggling Chip Enable 
-  delay (100) ;
-  digitalWrite (CE, HIGH);
-  delay (250) ; 
-  digitalWrite (CE, LOW);
-  delay (650) ;  
-  return r;
-}
-// ^^^^^^ -- Pimote control code -- ^^^^^^  
-
-
 
 
 /**
@@ -172,7 +86,6 @@ int main(int argc, const char *argv[])
     const char* topic;
 
     // vvvvvv -- WYXadded -- vvvvvv 
-    pimote_setup (); // Setup Pimote GPIO 
     strncpy(logfilename, defaultlogfilename, sizeof(defaultlogfilename));
     /* if (argc > 1) {  // Determine if we use command parameter 
         EN_SHUTDOWN = atoi(argv[1]);
@@ -377,75 +290,6 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       printf ("\n");
       receivedflag = 0;
     
-      // Socket switching logic: 
-      countON++;  // Keep a count of how long something has been turned on. 
-      switch(statusSocket) {
-      case 9 :
-          if (valExporting >= PLUGSON) { // Turn everything on! 
-              pimote_onoff  (2,1);     statusSocket = 9;
-              pimote_onoff  (1,1);
-          } else if (valExporting <= 5) { // Everything off! 
-              pimote_onoff  (2,0);     statusSocket = 0;   countON = 0;
-              pimote_onoff  (1,0);
-          }
-          break;
-      case 2 :
-          if (valExporting >= (PLUGSON - PLUG2ON + 20)) { // Turn everything on! 
-              pimote_onoff  (2,1);     statusSocket = 9;   countON = 0;
-              pimote_onoff  (1,1);
-          } else if (valExporting >= PLUG2ON) {
-              pimote_onoff  (2,0);
-              pimote_onoff  (1,1);     statusSocket = 2; 
-          } else if (valExporting <= 5) { // Everything off! 
-              pimote_onoff  (2,0);     statusSocket = 0;   countON = 0;
-              pimote_onoff  (1,0);
-          } else {
-              pimote_onoff  (2,0);
-              pimote_onoff  (1,1);     statusSocket = 2; 
-          }
-          break;
-      case 1 :
-          if (valExporting >= (PLUGSON - PLUG1ON + 50)) { // Turn everything on! 
-              pimote_onoff  (2,1);     statusSocket = 9;   countON = 0;
-              pimote_onoff  (1,1);
-          } else if (valExporting >= PLUG2ON) {
-              pimote_onoff  (2,0);
-              pimote_onoff  (1,1);     statusSocket = 2;   countON = 0; 
-          } else if (valExporting >= PLUG1ON) {
-              pimote_onoff  (2,1);     statusSocket = 1;
-              pimote_onoff  (1,0);
-          } else if (valExporting <= 5) { // Everything off! 
-              pimote_onoff  (2,0);     statusSocket = 0;   countON = 0;
-              pimote_onoff  (1,0);
-          } else {
-              pimote_onoff  (2,1);     statusSocket = 1;
-              pimote_onoff  (1,0);
-          }
-          break;
-      default : 
-          if (valExporting >= PLUGSON) { // Turn everything on! 
-              pimote_onoff  (2,1);     statusSocket = 9;   countON = 0;
-              pimote_onoff  (1,1);
-          } else if (valExporting >= PLUG2ON) {
-              pimote_onoff  (2,0);
-              pimote_onoff  (1,1);     statusSocket = 2;   countON = 0;
-          } else if (valExporting >= PLUG1ON) {
-              pimote_onoff  (2,1);     statusSocket = 1;   countON = 0;
-              pimote_onoff  (1,0);
-          } else {
-              pimote_onoff  (2,0);     statusSocket = 0;   countON = 0;
-              pimote_onoff  (1,0);
-          }
-      }
-      if (countON == ONTIMEOUT) {// Everything off for 2 cycles to reassess power usage 
-          pimote_onoff  (2,0);
-          pimote_onoff  (1,0);
-      } else if (countON > ONTIMEOUT) {
-          pimote_onoff  (2,0);
-          pimote_onoff  (1,0);   statusSocket = 0;   countON = 0;
-      }
-      
-      
       // Get time for later log files         
       time (&rawtime);
       strftime(timestr, 30, "%Y/%m/%d %H:%M:%S", localtime(&rawtime)); // generate desired time format 
@@ -471,40 +315,6 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       }
       
       
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      // ^^^^^  Additional logic here for WOL  vvvvvvvvvvvv
       
       // Log file for graph 
       pGraphFile = fopen(defaultgraphname, "a"); // append to the end of the file 
