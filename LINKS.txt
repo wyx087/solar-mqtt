@@ -1,0 +1,9 @@
+
+This file describes the symbolic links used throughout www directory: 
+
+(location where g.php is located, can be in a subdirectory) 
+ln -s /docker/solar/log /var/www/html/log
+
+ln -s /mnt/ramdisk/solar_graph.log /docker/solar/log/solar.csv
+ln -s /mnt/ramdisk/solar_graphshort.log /docker/solar/log/solar_short.csv
+

@@ -1,20 +1,20 @@
 #!/bin/bash
 exec 3>&1 4>&2
 trap 'exec 2>&4 1>&3' 0 1 2 3
-exec 1>/var/ramdisk/ramdisk_solarsync.log 2>&1
+exec 1>/mnt/ramdisk/ramdisk_solarsync.log 2>&1
 # Everything below will go to the log file
 
 case "$1" in
   run)
     echo [`date +"%Y-%m-%d %H:%M:%S"`] !! Copying files to ramdisk
-    rsync -av /home/pi/solar/ramdisk/ /var/ramdisk/
+    rsync -av /docker/solar/ramdisk/ /mnt/ramdisk/
     echo [`date +"%Y-%m-%d %H:%M:%S"`] !! Ramdisk Synched from HD
     echo [`date +"%Y-%m-%d %H:%M:%S"`] !! Starting Owl log trim script
 
-    /home/pi/auto/solar_mqtt >> /var/ramdisk/mqtt.log &
+    /docker/solar/solar_mqtt >> /mnt/ramdisk/solar_mqtt.log &
 
-    filein=/var/ramdisk/solar_graph.log
-    fileout=/var/ramdisk/solar_graphshort.log
+    filein=/mnt/ramdisk/solar_graph.log
+    fileout=/mnt/ramdisk/solar_graphshort.log
     size=250
     while [ 1 ]; do
       if [ -f "$filein" ]
@@ -26,7 +26,7 @@ case "$1" in
     ;;
   sync)
     echo [`date +"%Y-%m-%d %H:%M:%S"`] !! Synching files from ramdisk
-    rsync -av --delete --recursive --force /var/ramdisk/solar*.log /home/pi/solar/ramdisk/
+    rsync -av --delete --recursive --force /mnt/ramdisk/solar*.log /docker/solar/ramdisk/
     echo [`date +"%Y-%m-%d %H:%M:%S"`] !! Ramdisk Synched to HD
     ;;
   *)
@@ -36,3 +36,4 @@ case "$1" in
 esac
 
 exit 0
+
