@@ -16,21 +16,20 @@
 
 /****** Adjustable variables **************/
 #define AVGOVER 10 
-#define SHUTDOWNCOUNT 6
+#define SHUTDOWNCOUNT 10
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
 
-#define PLUG1ON     60
-#define PLUG2ON     600
-#define PLUGSON     650
-#define PCLOAD      250
+#define GPUpwrMAX 160
+#define GPUpwrMIN 128
 
 // const char defaultlogfilename[] = "/mnt/h/Temp/solar.log";
 const char defaultlogfilename[] = "/mnt/ramdisk/solar.log";
 const char defaultgraphname[] = "/mnt/ramdisk/solar_graph.log";
 char logfilename[100];
-int EN_SHUTDOWN = 1;  // set to 0 to disable shutdown, for generating noshutdown EXE on PC
+int EN_SHUTDOWN = 1;  // set to 0 to disable shutdown
 int EN_STOPMINING = 1;  // set to 0 to disable stop mining
 int statusMining = 0;  // Mining status, set initially in main, later used and changed in publish_callback 
+int countShutdown = SHUTDOWNCOUNT;  // Slows down Shutdown so can have time to close program 
 /*******************************************/
 
 
@@ -86,51 +85,29 @@ int main(int argc, const char *argv[])
     const char* topic;
 
     // vvvvvv -- WYXadded -- vvvvvv 
-    strncpy(logfilename, defaultlogfilename, sizeof(defaultlogfilename));
-    /* if (argc > 1) {  // Determine if we use command parameter 
-        EN_SHUTDOWN = atoi(argv[1]);
-    } 
-    if (argc > 2) {  // Determine if we use command parameter 
-        EN_STOPMINING = atoi(argv[2]);
-    } 
-    if (argc > 3) {
-        statusMining = atoi(argv[3]);
-    }
-    
-    if (EN_SHUTDOWN == 1) {
-        printf("\n   **  ******** Attention! ******** ** \n\n"); 
-        printf("   **  This program will shutdown the computer! **  \n");
-    } 
-    printf("\n   **  CTRL-C to close this program and use the computer normally ** \n"); 
-    printf("\n   **  ******** Attention! ******** ** \n\n"); 
-    
-    printf("\nWriting to log file:- %s \n", logfilename);
-    printf("Format:- time | statusMining | countShutdown | valUsage | valGenerating | valExporting");
-    printf("\n Mining status:-  %d   ", statusMining);
-    printf("\n\n"); */
     // ^^^^^^ -- WYXadded -- ^^^^^^  
     
     
-    /* get address (argv[1] if present) */
-    if (argc > 1) {
-        addr = argv[1];
-    } else {
-        addr = "192.168.5.5";
-    }
-
-    /* get port number (argv[2] if present) */
-    if (argc > 2) {
-        port = argv[2];
-    } else {
-        port = "1883";
-    }
-
-    /* get the topic name to publish */
-    if (argc > 3) {
-        topic = argv[3];
-    } else {
-        topic = "power/#";
-    }
+    // /* get address (argv[1] if present) */
+    // if (argc > 1) {
+    //     addr = argv[1];
+    // } else {
+         addr = "192.168.5.5";
+    // }
+    // 
+    // /* get port number (argv[2] if present) */
+    // if (argc > 2) {
+    //     port = argv[2];
+    // } else {
+         port = "1883";
+    // }
+    // 
+    // /* get the topic name to publish */
+    // if (argc > 3) {
+    //     topic = argv[3];
+    // } else {
+         topic = "power/#";
+    // }
 
     /* build the reconnect_state structure which will be passed to reconnect */
     struct reconnect_state_t reconnect_state;
@@ -241,8 +218,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
     static signed long aryUsage[AVGOVER] ={0}, aryGenerating[AVGOVER] ={0}, aryExporting[AVGOVER] ={0};
     static int countUsage =0, countGenerating =0, countExporting =0;
     static int statusSocket =0, countON =0;
-    static int countShutdown = SHUTDOWNCOUNT, power_on_buf = 20;
-    static int GPUpwr_applied = 0, GPUpwr_new = 0;
+    static int GPUpwr_applied = 150, GPUpwr_new = 0, MiningStopDelay = AVGOVER;
     char command[200];
     
     FILE * pLogFile = NULL;
@@ -300,21 +276,8 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       if (countExporting < AVGOVER -1) countExporting++; else countExporting = 0;
       avgExporting = sumExporting / AVGOVER;
       // printf("--- avg counters:  %d | %d | %d ---\n", countUsage, countExporting, countGenerating);
-      // vvvvv  Additional logic here for WOL  vvvvvvvvvvvv
-      if ((valUsage - valGenerating) >= 500) {  // added to ensure PC won't wake up due to spike usage 
-          statusMining = 1;
-      }
-      
-      if (countExporting == 0) {
-          if (avgExporting > PCLOAD && valExporting > PCLOAD) {
-              if (statusMining != 1) {
-                  statusMining = 8;
-                  system(". /home/pi/auto/wol_main.sh");
-              } else statusMining = 0;
-          } else statusMining = 0;
-      }
-      
-      
+        // vvvvv  Additional logic here for PC  vvvvvvvvvvvv
+        // ^^^^^  Additional logic here for PC  vvvvvvvvvvvv
       
       // Log file for graph 
       pGraphFile = fopen(defaultgraphname, "a"); // append to the end of the file 
@@ -335,7 +298,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
           fflush(stdout); // print everything in the stdout buffer
           // exit(1);
       } else {
-          sprintf(msgbuf, "%s | %d|%2d | %4lu | %4lu | %4lu \n", timestr, statusSocket, statusMining, valUsage, valGenerating, valExporting);
+          sprintf(msgbuf, "%s || %4lu | %4lu | %4lu \n", timestr, valUsage, valGenerating, valExporting);
           fprintf(pLogFile, "%s", msgbuf);
           printf("Written to log file:- %s", msgbuf);
           fclose(pLogFile);
