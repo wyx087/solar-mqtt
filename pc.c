@@ -19,108 +19,18 @@
 #define SHUTDOWNCOUNT 10
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
 
-#define GPUpwrMAX 175
-
-#define PLUG1ON     60
-#define PLUG2ON     600
-#define PLUGSON     650
-#define PCLOAD      250
+#define GPUpwrMAX 160
+#define GPUpwrMIN 128
 
 const char defaultlogfilename[] = "/mnt/h/Temp/solar.log";
-//const char defaultlogfilename[] = "/var/ramdisk/solar.log";
-//const char defaultgraphname[] = "/var/ramdisk/solar_graph.log";
+//const char defaultlogfilename[] = "/mnt/ramdisk/solar.log";
+//const char defaultgraphname[] = "/mnt/ramdisk/solar_graph.log";
 char logfilename[100];
 int EN_SHUTDOWN = 1;  // set to 0 to disable shutdown
 int EN_STOPMINING = 1;  // set to 0 to disable stop mining
 int statusMining = 0;  // Mining status, set initially in main, later used and changed in publish_callback 
 int countShutdown = SHUTDOWNCOUNT;  // Slows down Shutdown so can have time to close program 
 /*******************************************/
-
-
-// vvvvvv -- Pimote control code -- vvvvvv 
-//    Insert at the top of the code 
-/*#include <wiringPi.h>
-  #define    D0        0
-  #define    D1        3
-  #define    D2        4
-  #define    D3        2
-  #define    ModSel  5
-  #define    CE      6 */
-void pimote_setup (void) {
-/*  wiringPiSetup () ;
-  // Set GPIO modes 
-  pinMode (D0, OUTPUT);
-  pinMode (D1, OUTPUT);
-  pinMode (D2, OUTPUT);
-  pinMode (D3, OUTPUT);
-  pinMode (ModSel, OUTPUT);
-  pinMode (CE, OUTPUT);
-  delay (100);    // in ms 
-  // Set initial values 
-  digitalWrite (D0, LOW);
-  digitalWrite (D1, LOW);
-  digitalWrite (D2, LOW);
-  digitalWrite (D3, LOW);
-  digitalWrite (ModSel, LOW);
-  digitalWrite (CE, LOW);
-  delay (100);    // in ms  */
-}
-int pimote_onoff (int socket, int on1off) {
-  int r = 0;
-/*  if (on1off == 1) {
-    printf ("Pimote turning ON ");
-    digitalWrite (D3, HIGH);  // Turn on 
-  } else {
-    printf ("Pimote turning OFF ");
-    digitalWrite (D3, LOW);  // Turn off 
-  } 
-  switch (socket) {
-    case 1:
-      printf ("socket 1.\n");
-      digitalWrite (D2, HIGH);
-      digitalWrite (D1, HIGH);
-      digitalWrite (D0, HIGH);
-      r = 1;
-      break;
-    case 2:
-      printf ("socket 2.\n");
-      digitalWrite (D2, HIGH);
-      digitalWrite (D1, HIGH);
-      digitalWrite (D0, LOW);
-      r = 2;
-      break;
-    case 3:
-      printf ("socket 3.\n");
-      digitalWrite (D2, HIGH);
-      digitalWrite (D1, LOW);
-      digitalWrite (D0, HIGH);
-      r = 3;
-      break;
-    case 4:
-      printf ("socket 4.\n");
-      digitalWrite (D2, HIGH);
-      digitalWrite (D1, LOW);
-      digitalWrite (D0, LOW);
-      r = 4;
-      break;
-    default:
-      printf ("ALL sockets.\n");
-      digitalWrite (D2, LOW);
-      digitalWrite (D1, HIGH);
-      digitalWrite (D0, HIGH);
-      r = 0;
-  }
-  // Execute by toggling Chip Enable 
-  delay (100) ;
-  digitalWrite (CE, HIGH);
-  delay (250) ; 
-  digitalWrite (CE, LOW);
-  delay (650) ;  */
-  return r;
-}
-// ^^^^^^ -- Pimote control code -- ^^^^^^  
-
-
 
 
 /**
@@ -175,7 +85,6 @@ int main(int argc, const char *argv[])
     const char* topic;
 
     // vvvvvv -- WYXadded -- vvvvvv 
-    pimote_setup (); // Setup Pimote GPIO 
     strncpy(logfilename, defaultlogfilename, sizeof(defaultlogfilename));
     if (argc > 1) {  // Determine if we will shutdown computer (default yes) 
         EN_SHUTDOWN = atoi(argv[1]);
@@ -386,75 +295,6 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       printf ("\n");
       receivedflag = 0;
     
-      // Socket switching logic: 
-      countON++;  // Keep a count of how long something has been turned on. 
-      switch(statusSocket) {
-      case 9 :
-          if (valExporting >= PLUGSON) { // Turn everything on! 
-              pimote_onoff  (2,1);     statusSocket = 9;
-              pimote_onoff  (1,1);
-          } else if (valExporting <= 5) { // Everything off! 
-              pimote_onoff  (2,0);     statusSocket = 0;   countON = 0;
-              pimote_onoff  (1,0);
-          }
-          break;
-      case 2 :
-          if (valExporting >= (PLUGSON - PLUG2ON + 20)) { // Turn everything on! 
-              pimote_onoff  (2,1);     statusSocket = 9;   countON = 0;
-              pimote_onoff  (1,1);
-          } else if (valExporting >= PLUG2ON) {
-              pimote_onoff  (2,0);
-              pimote_onoff  (1,1);     statusSocket = 2; 
-          } else if (valExporting <= 5) { // Everything off! 
-              pimote_onoff  (2,0);     statusSocket = 0;   countON = 0;
-              pimote_onoff  (1,0);
-          } else {
-              pimote_onoff  (2,0);
-              pimote_onoff  (1,1);     statusSocket = 2; 
-          }
-          break;
-      case 1 :
-          if (valExporting >= (PLUGSON - PLUG1ON + 50)) { // Turn everything on! 
-              pimote_onoff  (2,1);     statusSocket = 9;   countON = 0;
-              pimote_onoff  (1,1);
-          } else if (valExporting >= PLUG2ON) {
-              pimote_onoff  (2,0);
-              pimote_onoff  (1,1);     statusSocket = 2;   countON = 0; 
-          } else if (valExporting >= PLUG1ON) {
-              pimote_onoff  (2,1);     statusSocket = 1;
-              pimote_onoff  (1,0);
-          } else if (valExporting <= 5) { // Everything off! 
-              pimote_onoff  (2,0);     statusSocket = 0;   countON = 0;
-              pimote_onoff  (1,0);
-          } else {
-              pimote_onoff  (2,1);     statusSocket = 1;
-              pimote_onoff  (1,0);
-          }
-          break;
-      default : 
-          if (valExporting >= PLUGSON) { // Turn everything on! 
-              pimote_onoff  (2,1);     statusSocket = 9;   countON = 0;
-              pimote_onoff  (1,1);
-          } else if (valExporting >= PLUG2ON) {
-              pimote_onoff  (2,0);
-              pimote_onoff  (1,1);     statusSocket = 2;   countON = 0;
-          } else if (valExporting >= PLUG1ON) {
-              pimote_onoff  (2,1);     statusSocket = 1;   countON = 0;
-              pimote_onoff  (1,0);
-          } else {
-              pimote_onoff  (2,0);     statusSocket = 0;   countON = 0;
-              pimote_onoff  (1,0);
-          }
-      }
-      if (countON == ONTIMEOUT) {// Everything off for 2 cycles to reassess power usage 
-          pimote_onoff  (2,0);
-          pimote_onoff  (1,0);
-      } else if (countON > ONTIMEOUT) {
-          pimote_onoff  (2,0);
-          pimote_onoff  (1,0);   statusSocket = 0;   countON = 0;
-      }
-      
-      
       // Get time for later log files         
       time (&rawtime);
       strftime(timestr, 30, "%Y/%m/%d %H:%M:%S", localtime(&rawtime)); // generate desired time format 
@@ -471,7 +311,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
         printf("  **  CTRL-C to close this program and the miner ** \n"); 
         
         if (statusMining == 0) {  // Not mining 
-            if (valExporting > 120) {
+            if (valExporting > GPUpwrMIN + 10) {
                 // start mining 
                 statusMining = 1; 
                 countShutdown = SHUTDOWNCOUNT; 
@@ -501,7 +341,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
             if (valExporting > 10) {
                 MiningStopDelay = AVGOVER;
                 countShutdown = SHUTDOWNCOUNT; 
-                GPUpwr_new = GPUpwr_applied + valExporting - 4; 
+                GPUpwr_new = GPUpwr_applied + valExporting - 3; 
                 if (GPUpwr_new < GPUpwrMAX) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
                     sprintf(command, "'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
@@ -514,13 +354,13 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                     }
                 }
             } else if (valImporting > 10) {
-                GPUpwr_new = GPUpwr_applied - valImporting - 4; 
-                if (GPUpwr_new > 105) { // set GPU power 
+                GPUpwr_new = GPUpwr_applied - valImporting - 2; 
+                if (GPUpwr_new >= GPUpwrMIN) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
                     sprintf(command, "'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 } else {             // stop mining, set GPU to 260 
-                    if ((EN_STOPMINING == 1) && (GPUpwr_new < 80)) {
+                    if ((EN_STOPMINING == 1) && (GPUpwr_new < GPUpwrMIN - 40)) {
                         if (valImporting > 800) {
                             statusMining = 0;
                             system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
@@ -534,7 +374,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                         } else {
                             MiningStopDelay = MiningStopDelay - 1;
                             printf("Stop mining delayed, cycles left: %d \n", MiningStopDelay);
-                            GPUpwr_applied = 103; 
+                            GPUpwr_applied = GPUpwrMIN - 1; 
                             sprintf(command, "'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
                             system(command);
                         }
@@ -549,16 +389,6 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
         // ^^^^^  Additional logic here for PC  vvvvvvvvvvvv
       
       // Log file for graph 
-      /*pGraphFile = fopen(defaultgraphname, "a"); // append to the end of the file 
-      if (pGraphFile == NULL){
-          printf("---ERROR--------graph log file open failed--------ERROR---\n");
-          fflush(stdout); // print everything in the stdout buffer
-      } else {
-          sprintf(msgbuf, "%s,%lu,%lu,%lu\n", timestr, valUsage, valGenerating, valExporting);
-          fprintf(pGraphFile, "%s", msgbuf);
-          printf("Written to graph log file:- %s", msgbuf);
-          fclose(pGraphFile);
-      }*/
       
       // Log current status 
       pLogFile = fopen(logfilename, "a"); // append the information into a file 

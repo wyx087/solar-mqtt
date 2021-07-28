@@ -75,7 +75,7 @@ echo Night time direct mining:
         tasklist /fi "imagename eq MSIAfterburner.exe" |find "MSIAfterburner.exe" > nul
         if errorlevel 1   (GOTO CONTINUE_NIGHT )    else    (GOTO TERMINATE_NIGHT )
     :CONTINUE_NIGHT 
-  "C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe" --power-limit=150
+  "C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe" --power-limit=128
 	start "" "c:\Users\wyx\AppData\Local\Programs\NiceHash Miner\NiceHashMiner.exe"
 
 	:LOOP
