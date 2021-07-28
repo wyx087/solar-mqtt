@@ -85,6 +85,7 @@ int main(int argc, const char *argv[])
     const char* topic;
 
     // vvvvvv -- WYXadded -- vvvvvv 
+    strncpy(logfilename, defaultlogfilename, sizeof(defaultlogfilename));
     // ^^^^^^ -- WYXadded -- ^^^^^^  
     
     

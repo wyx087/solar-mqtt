@@ -379,7 +379,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                             system(command);
                         }
                     } else {
-                        GPUpwr_applied = 104; 
+                        GPUpwr_applied = GPUpwrMIN; 
                         sprintf(command, "'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
                         system(command);
                     }
