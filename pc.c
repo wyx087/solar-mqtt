@@ -311,13 +311,13 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
         printf("  **  CTRL-C to close this program and the miner ** \n"); 
         
         if (statusMining == 0) {  // Not mining 
-            if (valExporting > GPUpwrMIN + 10) {
+            if (valExporting > GPUpwrMIN) {
                 // start mining 
                 statusMining = 1; 
                 countShutdown = SHUTDOWNCOUNT; 
                 system("/mnt/c/Windows/system32/shutdown.exe -a 2> null"); 
                 system("/mnt/c/Users/wyx/AppData/Local/Programs/NiceHash\\ Miner/NiceHashMiner.exe &");
-                GPUpwr_new = valExporting - 20; 
+                GPUpwr_new = valExporting; 
                 if (GPUpwr_new < GPUpwrMAX) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
                     sprintf(command, "'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
