@@ -19,7 +19,7 @@
 #define SHUTDOWNCOUNT 10
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
 
-#define GPUpwrMAX 160
+#define GPUpwrMAX 145
 #define GPUpwrMIN 128
 
 const char defaultlogfilename[] = "/mnt/h/Temp/solar.log";
@@ -311,7 +311,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
         printf("  **  CTRL-C to close this program and the miner ** \n"); 
         
         if (statusMining == 0) {  // Not mining 
-            if (valExporting > GPUpwrMIN) {
+            if (valExporting > GPUpwrMIN - 20) {
                 // start mining 
                 statusMining = 1; 
                 countShutdown = SHUTDOWNCOUNT; 
