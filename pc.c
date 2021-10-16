@@ -319,12 +319,12 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                 system("/mnt/c/Users/wyx/AppData/Local/Programs/NiceHash\\ Miner/NiceHashMiner.exe &");
                 GPUpwr_new = valExporting; 
                 if (GPUpwr_new < GPUpwrMAX) { // set GPU power 
-                    GPUpwr_applied = GPUpwr_new; 
-                    sprintf(command, "'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
+                    GPUpwr_applied = GPUpwrMIN; 
+                    sprintf(command, "'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 } else  {             // set GPU to max
                     GPUpwr_applied = GPUpwrMAX;
-                    sprintf(command, "'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
+                    sprintf(command, "'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 }
             } else if (valExporting > 20) {
@@ -344,12 +344,12 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                 GPUpwr_new = GPUpwr_applied + valExporting - 3; 
                 if (GPUpwr_new < GPUpwrMAX) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
-                    sprintf(command, "'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
+                    sprintf(command, "'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 } else  {             // set GPU to max  
                     if (GPUpwr_applied != GPUpwrMAX ) {
                         GPUpwr_applied = GPUpwrMAX; 
-                        sprintf(command, "'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
+                        sprintf(command, "'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
                         system(command);
                     }
                 }
@@ -357,30 +357,29 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                 GPUpwr_new = GPUpwr_applied - valImporting - 2; 
                 if (GPUpwr_new >= GPUpwrMIN) { // set GPU power 
                     GPUpwr_applied = GPUpwr_new; 
-                    sprintf(command, "'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
+                    sprintf(command, "'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
                     system(command);
                 } else {             // stop mining, set GPU to 260 
                     if ((EN_STOPMINING == 1) && (GPUpwr_new < GPUpwrMIN - 40)) {
                         if (valImporting > 800) {
                             statusMining = 0;
                             system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
-                            system("'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=260 &");
-                            if (EN_SHUTDOWN == 1) system("/mnt/c/Windows/system32/shutdown.exe -s -hybrid -t 300"); 
+                            system("'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=260 &");
                         } else if (MiningStopDelay < 1) {
                             MiningStopDelay = AVGOVER;
                             statusMining = 0;
                             system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
-                            system("'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=260 &");
+                            system("'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=260 &");
                         } else {
                             MiningStopDelay = MiningStopDelay - 1;
                             printf("Stop mining delayed, cycles left: %d \n", MiningStopDelay);
                             GPUpwr_applied = GPUpwrMIN - 1; 
-                            sprintf(command, "'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
+                            sprintf(command, "'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
                             system(command);
                         }
                     } else {
                         GPUpwr_applied = GPUpwrMIN; 
-                        sprintf(command, "'/mnt/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
+                        sprintf(command, "'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
                         system(command);
                     }
                 }
