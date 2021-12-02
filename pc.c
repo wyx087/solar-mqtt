@@ -15,7 +15,7 @@
 #include "templates/posix_sockets.h"
 
 /****** Adjustable variables **************/
-#define AVGOVER 3
+#define AVGOVER 5
 #define SHUTDOWNCOUNT 10
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
 
@@ -361,11 +361,12 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                     system(command);
                 } else {             // stop mining, set GPU to 260 
                     if ((EN_STOPMINING == 1) && (GPUpwr_new < GPUpwrMIN - 40)) {
-                        if (valImporting > 800) {
-                            statusMining = 0;
-                            system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
-                            system("'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=260 &");
-                        } else if (MiningStopDelay < 1) {
+                        // if (valImporting > 800) {
+                            // statusMining = 0;
+                            // system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
+                            // system("'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=260 &");
+                        // } else 
+                        if (MiningStopDelay < 1) {
                             MiningStopDelay = AVGOVER;
                             statusMining = 0;
                             system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");

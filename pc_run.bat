@@ -1,7 +1,7 @@
 @echo off 
 :: To enable display of timed out choice 
 setlocal enableDelayedExpansion  
-set normalinitialwait=20
+set normalinitialwait=40
 
 ::If in above range, run night mode. When hour changes to %nighthourhigh%, GOTO NIGHTFINISH   
 set nighthourlow=00
@@ -22,6 +22,7 @@ IF %hour% GEQ %nighthourlow% IF %hour% LSS %nighthourhigh% (GOTO NIGHTRUN)
 
 :NORMAL 
 echo Day time, run normally: 
+  TIMEOUT /T 8 
 
   for /l %%N in (%normalinitialwait% -1 1) do (
     set /a "min=%%N/60, sec=%%N%%60, n-=1"
@@ -40,7 +41,7 @@ echo Day time, run normally:
     TIMEOUT /T 2 > nul
     :TERMINATE_NORMAL 
         taskkill /IM MSIAfterburner.exe
-        TIMEOUT /T 1 > nul
+        TIMEOUT /T 2 > nul
         tasklist /fi "imagename eq MSIAfterburner.exe" |find "MSIAfterburner.exe" > nul
         if errorlevel 1   (GOTO CONTINUE_NORMAL )    else    (GOTO TERMINATE_NORMAL )
     :CONTINUE_NORMAL 
@@ -71,7 +72,7 @@ echo Night time direct mining:
     TIMEOUT /T 5
     :TERMINATE_NIGHT 
         taskkill /IM MSIAfterburner.exe
-        TIMEOUT /T 1 > nul
+        TIMEOUT /T 2 > nul
         tasklist /fi "imagename eq MSIAfterburner.exe" |find "MSIAfterburner.exe" > nul
         if errorlevel 1   (GOTO CONTINUE_NIGHT )    else    (GOTO TERMINATE_NIGHT )
     :CONTINUE_NIGHT 
@@ -95,5 +96,6 @@ GOTO END
 :END 
 taskkill /T /IM NiceHashMiner.exe
 "C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe" --power-limit=260
+TIMEOUT /T 2 > nul
 start "" "C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe" -Profile5
 shutdown -a
