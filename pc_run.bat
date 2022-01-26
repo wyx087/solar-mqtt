@@ -5,7 +5,7 @@ set normalinitialwait=40
 
 ::If in above range, run night mode. When hour changes to %nighthourhigh%, GOTO NIGHTFINISH   
 set nighthourlow=00
-set nighthourhigh=7
+set nighthourhigh=6
 
 :: Local time 
 rem set hour=%time:~0,2%
@@ -65,8 +65,8 @@ echo Day time, run normally:
 :NIGHTRUN
 echo Night time direct mining: 
 
-	TIMEOUT /T 30
-	rem turn off display using this: c:\windows\system32\DisplaySwitch /external
+	"G:\programs\ClickMonitorDDC\ClickMonitorDDC_7_2.exe" x 
+  TIMEOUT /T 30
 	
 	start "" "C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe" -Profile4
     TIMEOUT /T 5
@@ -81,8 +81,9 @@ echo Night time direct mining:
 
 	:LOOP
 		TIMEOUT /T 120  > nul
+    "G:\programs\ClickMonitorDDC\ClickMonitorDDC_7_2.exe" x 
 		for /f %%x in ('wmic path win32_utctime get /format:list ^| findstr "="') do set %%x 
-		IF %hour% GEQ %nighthourhigh%  IF %minute% GEQ 20 (GOTO NIGHTFINISH)
+		IF %hour% GEQ %nighthourhigh%  IF %minute% GEQ 0 (GOTO NIGHTFINISH)
 	GOTO LOOP 
 
 	:NIGHTFINISH
