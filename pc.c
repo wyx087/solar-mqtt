@@ -373,7 +373,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                             system("'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=260 &");
                         } else {
                             MiningStopDelay = MiningStopDelay - 1;
-                            printf("Stop mining delayed, cycles left: %d \n", MiningStopDelay);
+                            printf("> %d cycles left. Stop mining delayed. \n", MiningStopDelay);
                             GPUpwr_applied = GPUpwrMIN - 1; 
                             sprintf(command, "'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
                             system(command);
@@ -399,7 +399,8 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
       } else {
           sprintf(msgbuf, "%s | %d | %d | %4lu | %4lu | %4lu \n", timestr, statusMining, countShutdown, valUsage, valGenerating, valExporting);
           fprintf(pLogFile, "%s", msgbuf);
-          printf("Written to log file:----> %s", msgbuf);
+          printf("  log file:----> %s", msgbuf);
+          printf("> %4lu | %4lu | %4lu <\n", valUsage, valGenerating, valExporting);
           fclose(pLogFile);
       }
       
