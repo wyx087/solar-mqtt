@@ -18,8 +18,8 @@
 #define AVGOVER 5
 #define SHUTDOWNCOUNT 10
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
-
-#define GPUpwrMAX 145
+#define MiningProgDelaySetting 5  // wait this many cycles before changing state 
+#define GPUpwrMAX 150
 #define GPUpwrMIN 128
 
 const char defaultlogfilename[] = "/mnt/h/Temp/solar.log";
@@ -29,6 +29,7 @@ char logfilename[100];
 int EN_SHUTDOWN = 1;  // set to 0 to disable shutdown
 int EN_STOPMINING = 1;  // set to 0 to disable stop mining
 int statusMining = 0;  // Mining status, set initially in main, later used and changed in publish_callback 
+int MiningProgDelay = 0;
 int countShutdown = SHUTDOWNCOUNT;  // Slows down Shutdown so can have time to close program 
 /*******************************************/
 
@@ -315,17 +316,20 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                 // start mining 
                 statusMining = 1; 
                 countShutdown = SHUTDOWNCOUNT; 
-                system("/mnt/c/Windows/system32/shutdown.exe -a 2> null"); 
-                system("/mnt/c/Users/wyx/AppData/Local/Programs/NiceHash\\ Miner/NiceHashMiner.exe &");
-                GPUpwr_new = valExporting; 
-                if (GPUpwr_new < GPUpwrMAX) { // set GPU power 
-                    GPUpwr_applied = GPUpwrMIN; 
-                    sprintf(command, "'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
-                    system(command);
-                } else  {             // set GPU to max
-                    GPUpwr_applied = GPUpwrMAX;
-                    sprintf(command, "'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
-                    system(command);
+                if (MiningProgDelay == 0) {
+                  MiningProgDelay = MiningProgDelaySetting;
+                  system("/mnt/c/Windows/system32/shutdown.exe -a 2> null"); 
+                  system("/mnt/c/Users/wyx/AppData/Local/Programs/NiceHash\\ Miner/NiceHashMiner.exe &");
+                  GPUpwr_new = valExporting; 
+                  if (GPUpwr_new < GPUpwrMAX) { // set GPU power 
+                      GPUpwr_applied = GPUpwrMIN; 
+                      sprintf(command, "'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
+                      system(command);
+                  } else  {             // set GPU to max
+                      GPUpwr_applied = GPUpwrMAX;
+                      sprintf(command, "'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=%d &", GPUpwr_applied);
+                      system(command);
+                  }
                 }
             } else if (valExporting > 20) {
               countShutdown = SHUTDOWNCOUNT; 
@@ -361,14 +365,16 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                     system(command);
                 } else {             // stop mining, set GPU to 260 
                     if ((EN_STOPMINING == 1) && (GPUpwr_new < GPUpwrMIN - 40)) {
-                        // if (valImporting > 800) {
+                        // if (valImporting > 800) && (MiningProgDelay == 0) {
                             // statusMining = 0;
+                            // MiningProgDelay = MiningProgDelaySetting;
                             // system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
                             // system("'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=260 &");
                         // } else 
                         if (MiningStopDelay < 1) {
                             MiningStopDelay = AVGOVER;
                             statusMining = 0;
+                            MiningProgDelay = MiningProgDelaySetting;
                             system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
                             system("'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=260 &");
                         } else {
@@ -385,6 +391,9 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                     }
                 }
             }
+        }
+        if (MiningProgDelay > 0) {
+          MiningProgDelay = MiningProgDelay - 1;
         }
         // ^^^^^  Additional logic here for PC  vvvvvvvvvvvv
       
