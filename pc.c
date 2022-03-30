@@ -248,7 +248,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
     static signed long aryUsage[AVGOVER] ={0}, aryGenerating[AVGOVER] ={0}, aryExporting[AVGOVER] ={0};
     static int countUsage =0, countGenerating =0, countExporting =0;
     static int statusSocket =0, countON =0;
-    static int GPUpwr_applied = 150, GPUpwr_new = 0, MiningStopDelay = AVGOVER;
+    static int GPUpwr_applied = 135, GPUpwr_new = 0, MiningStopDelay = AVGOVER;
     char command[200];
     
     FILE * pLogFile = NULL;
@@ -314,9 +314,9 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
         if (statusMining == 0) {  // Not mining 
             if (valExporting > GPUpwrMIN - 20) {
                 // start mining 
-                statusMining = 1; 
-                countShutdown = SHUTDOWNCOUNT; 
                 if (MiningProgDelay == 0) {
+                  statusMining = 1; 
+                  countShutdown = SHUTDOWNCOUNT; 
                   MiningProgDelay = MiningProgDelaySetting;
                   system("/mnt/c/Windows/system32/shutdown.exe -a 2> null"); 
                   system("/mnt/c/Users/wyx/AppData/Local/Programs/NiceHash\\ Miner/NiceHashMiner.exe &");
