@@ -15,8 +15,8 @@
 #include "templates/posix_sockets.h"
 
 /****** Adjustable variables **************/
-#define AVGOVER 5
-#define SHUTDOWNCOUNT 10
+#define AVGOVER 9
+#define SHUTDOWNCOUNT 30
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
 #define MiningProgDelaySetting 5  // wait this many cycles before changing state 
 #define GPUpwrMAX 150
