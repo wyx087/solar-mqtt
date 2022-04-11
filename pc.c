@@ -19,7 +19,7 @@
 #define SHUTDOWNCOUNT 30
 #define ONTIMEOUT 999 // After how long turn off everything to redetermine state 
 #define MiningProgDelaySetting 5  // wait this many cycles before changing state 
-#define GPUpwrMAX 150
+#define GPUpwrMAX 138
 #define GPUpwrMIN 128
 
 const char defaultlogfilename[] = "/mnt/h/Temp/solar.log";
@@ -376,7 +376,7 @@ void publish_callback(void** unused, struct mqtt_response_publish *published)
                             statusMining = 0;
                             MiningProgDelay = MiningProgDelaySetting;
                             system("/mnt/c/Windows/system32/taskkill.exe /T /IM NiceHashMiner.exe");
-                            system("'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=260 &");
+                            system("'/mnt/c/Windows/System32/nvidia-smi.exe' --power-limit=160 &");
                         } else {
                             MiningStopDelay = MiningStopDelay - 1;
                             printf("> %d cycles left. Stop mining delayed. \n", MiningStopDelay);
